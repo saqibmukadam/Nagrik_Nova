@@ -1,6 +1,7 @@
 import Rewards from "./Rewards";
 // Find your existing UXStates import and add SessionExpiredModal
 import { NotFound, ServerError, SessionExpiredModal } from './UXStates';
+import AccountSettings from "./AccountSettings";
 import { PrivacyPolicy, TermsOfService, CommunityGuidelines } from "./Legal";
 import { Bot } from 'lucide-react'; // Or swap for a custom emoji/image!
 import CitizenMap from "./CitizenMap";
@@ -205,7 +206,7 @@ function App() {
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/guidelines" element={<CommunityGuidelines />} />
-          
+          <Route path="/settings" element={<Require user={auth.user}><AccountSettings user={auth.user} auth={auth} /></Require>} />
           <Route path="/500" element={<ServerError />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
@@ -311,6 +312,11 @@ function Nav({ auth }) {
             <span className="user-dot">
               {auth.user.name.split(" ").map((x) => x[0]).slice(0, 2)}
             </span>
+            {/* THE FIX: Added Settings link here! */}
+            <Link to="/settings" className="text-btn" onClick={closeMenu} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <Wrench size={14} /> Settings
+            </Link>
+            <button className="text-btn" onClick={() => { auth.out(); closeMenu(); }}></button>
             <button className="text-btn" onClick={() => { auth.out(); closeMenu(); }}>
               Sign out
             </button>
@@ -322,6 +328,7 @@ function Nav({ auth }) {
               Join the network <ArrowRight size={15} />
             </Link>
           </div>
+          
         )}
       </nav>
     </header>
