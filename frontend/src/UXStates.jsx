@@ -1,6 +1,5 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, ServerCrash, Home, ArrowLeft } from "lucide-react";
 import { AlertTriangle, ServerCrash, Home, ArrowLeft, LogOut } from "lucide-react";
 
 export function NotFound() {
@@ -38,6 +37,7 @@ export function ServerError() {
     </section>
   );
 }
+
 export function SessionExpiredModal({ onLoginClick }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, backdropFilter: 'blur(5px)' }}>
