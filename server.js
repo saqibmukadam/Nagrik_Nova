@@ -180,9 +180,11 @@ app.put("/api/users/:id/password", async (req, res) => {
     }
     
     // Encrypt the new password before saving it to MongoDB
+    // (Ensure 'const bcrypt = require("bcrypt");' or 'bcryptjs' is at the top of your file!)
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
     
+    // Note: Ensure your mongoose model is correctly named here (e.g., User)
     await User.findByIdAndUpdate(req.params.id, { password: hashedPassword });
     
     res.json({ message: "Password updated successfully" });
