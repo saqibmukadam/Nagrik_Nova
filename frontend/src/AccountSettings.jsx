@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { User, Lock, Trash2, Save, ArrowLeft, ShieldAlert, Pencil } from "lucide-react";
+import { User, Lock, Trash2, Save, ArrowLeft, ShieldAlert, Pencil, X } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function AccountSettings({ user, auth }) {
@@ -10,15 +10,27 @@ export default function AccountSettings({ user, auth }) {
     address: user?.address || "",
   });
   
+  // THE FIX: Track which fields are actively being edited
+  const [editState, setEditState] = useState({
+    name: false,
+    email: false,
+    phone: false,
+    address: false,
+  });
+  
   const [msg, setMsg] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Toggle the edit lock for a specific field
+  const toggleEdit = (field) => {
+    setEditState(prev => ({ ...prev, [field]: !prev[field] }));
+  };
 
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
     setMsg("");
     
-    // THE FIX: Actually save the data to the global state and local storage
     auth.updateUser({
       name: formData.name,
       email: formData.email,
@@ -29,12 +41,14 @@ export default function AccountSettings({ user, auth }) {
     setTimeout(() => {
       setSaving(false);
       setMsg("Profile updated successfully!");
+      // THE FIX: Lock all fields again after a successful save
+      setEditState({ name: false, email: false, phone: false, address: false });
     }, 800);
   };
 
   const handlePasswordReset = () => {
-    // THE FIX: Added action to the password reset button
-    alert(`A password reset link has been sent to ${formData.email}. Please check your inbox.`);
+    // Clarified that this is currently a frontend mockup
+    alert(`A password reset link has been sent to ${formData.email}. (Note: Backend email server integration required for live delivery!)`);
   };
 
   const handleDelete = () => {
@@ -44,6 +58,13 @@ export default function AccountSettings({ user, auth }) {
       auth.out();
     }
   };
+
+  // Helper function to style disabled inputs
+  const inputStyle = (isEditing) => ({
+    opacity: isEditing ? 1 : 0.6,
+    cursor: isEditing ? 'text' : 'not-allowed',
+    background: isEditing ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.2)'
+  });
 
   return (
     <section className="page" style={{ maxWidth: '800px', margin: '0 auto' }}>
@@ -65,34 +86,59 @@ export default function AccountSettings({ user, auth }) {
             <User size={20} /> Personal Information
           </h2>
           <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            
             <div className="two">
               <label>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Full Name <Pencil size={12} color="#10b981" /></span>
-                <input required type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  Full Name 
+                  <button type="button" onClick={() => toggleEdit('name')} style={{ background: 'none', border: 'none', padding: '2px', cursor: 'pointer', display: 'flex' }} title={editState.name ? "Lock" : "Edit"}>
+                    {editState.name ? <X size={14} color="#ef4444" /> : <Pencil size={14} color="#10b981" />}
+                  </button>
+                </span>
+                <input required type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} disabled={!editState.name} style={inputStyle(editState.name)} />
               </label>
+              
               <label>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Email Address <Pencil size={12} color="#10b981" /></span>
-                <input required type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  Email Address 
+                  <button type="button" onClick={() => toggleEdit('email')} style={{ background: 'none', border: 'none', padding: '2px', cursor: 'pointer', display: 'flex' }} title={editState.email ? "Lock" : "Edit"}>
+                    {editState.email ? <X size={14} color="#ef4444" /> : <Pencil size={14} color="#10b981" />}
+                  </button>
+                </span>
+                <input required type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} disabled={!editState.email} style={inputStyle(editState.email)} />
               </label>
             </div>
+
             <div className="two">
               <label>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Phone Number <Pencil size={12} color="#10b981" /></span>
-                <input type="text" placeholder="Add your phone number" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  Phone Number 
+                  <button type="button" onClick={() => toggleEdit('phone')} style={{ background: 'none', border: 'none', padding: '2px', cursor: 'pointer', display: 'flex' }} title={editState.phone ? "Lock" : "Edit"}>
+                    {editState.phone ? <X size={14} color="#ef4444" /> : <Pencil size={14} color="#10b981" />}
+                  </button>
+                </span>
+                <input type="text" placeholder="Add your phone number" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} disabled={!editState.phone} style={inputStyle(editState.phone)} />
               </label>
+              
               <label>
                 Role
-                <input type="text" value={user?.role} disabled style={{ opacity: 0.7, cursor: 'not-allowed' }} />
+                <input type="text" value={user?.role} disabled style={inputStyle(false)} />
               </label>
             </div>
+
             <label>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Address <Pencil size={12} color="#10b981" /></span>
-              <input type="text" placeholder="Add your residential address" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} />
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                Address 
+                <button type="button" onClick={() => toggleEdit('address')} style={{ background: 'none', border: 'none', padding: '2px', cursor: 'pointer', display: 'flex' }} title={editState.address ? "Lock" : "Edit"}>
+                  {editState.address ? <X size={14} color="#ef4444" /> : <Pencil size={14} color="#10b981" />}
+                </button>
+              </span>
+              <input type="text" placeholder="Add your residential address" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} disabled={!editState.address} style={inputStyle(editState.address)} />
             </label>
             
             {msg && <div className="success" style={{ margin: 0 }}>{msg}</div>}
             
-            <button type="submit" className="btn" disabled={saving} style={{ alignSelf: 'flex-start', marginTop: '10px' }}>
+            <button type="submit" className="btn" disabled={saving || !Object.values(editState).some(Boolean)} style={{ alignSelf: 'flex-start', marginTop: '10px' }}>
               <Save size={16} /> {saving ? "Saving..." : "Save Changes"}
             </button>
           </form>
