@@ -1,5 +1,7 @@
 import Rewards from "./Rewards";
 import { NotFound, ServerError } from './UXStates';
+// Find your existing UXStates import and add SessionExpiredModal
+import { NotFound, ServerError, SessionExpiredModal } from './UXStates';
 import { PrivacyPolicy, TermsOfService, CommunityGuidelines } from "./Legal";
 import { Bot } from 'lucide-react'; // Or swap for a custom emoji/image!
 import CitizenMap from "./CitizenMap";
@@ -123,7 +125,16 @@ api.interceptors.request.use((c) => {
   if (t) c.headers.Authorization = `Bearer ${t}`;
   return c;
 });
-
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      // Broadcast a global event when the backend rejects the token
+      window.dispatchEvent(new Event("session-expired"));
+    }
+    return Promise.reject(error);
+  }
+);
 const useAuth = () => {
   const [user, setUser] = useState(() =>
     JSON.parse(localStorage.getItem("nn-user") || "null"),
@@ -156,9 +167,29 @@ const convertToBase64 = (file) => {
 
 function App() {
   const auth = useAuth();
+  const nav = useNavigate();
+  const [showExpired, setShowExpired] = useState(false);
+
+  useEffect(() => {
+    const handleExpired = () => {
+      auth.out(); // Instantly clear the dead token from local storage
+      setShowExpired(true);
+    };
+
+    window.addEventListener("session-expired", handleExpired);
+    return () => window.removeEventListener("session-expired", handleExpired);
+  }, [auth]);
+
   return (
     <>
-      <CursorCompanion /> {/* THE NEW TRACKER! */}
+      {showExpired && (
+        <SessionExpiredModal onLoginClick={() => {
+          setShowExpired(false);
+          nav("/login");
+        }} />
+      )}
+      
+      <CursorCompanion />
       <Nav auth={auth} />
       <main>
         <Routes>
@@ -166,51 +197,17 @@ function App() {
           <Route path="/vr-map" element={<Require user={auth.user}><VRCommandCenter /></Require>} />
           <Route path="/login" element={<Login auth={auth} />} />
           <Route path="/register" element={<Register auth={auth} />} />
-          <Route path="/500" element={<ServerError />} />
-          <Route
-            path="/issues"
-            element={
-              <Require user={auth.user}>
-                <Issues user={auth.user} /> 
-              </Require>
-            }
-          />
-          <Route
-            path="/rewards"
-            element={
-              <Require user={auth.user}>
-                <Rewards user={auth.user} />
-              </Require>
-            }
-          />
-          <Route
-            path="/map"
-            element={
-              <Require user={auth.user}>
-                <CitizenMap />
-              </Require>
-            }
-          />
-          <Route
-            path="/issues/:id"
-            element={
-              <Require user={auth.user}>
-                <Detail user={auth.user} />
-              </Require>
-            }
-          />
-          <Route
-            path="/dashboard"
-            element={
-              <Require user={auth.user}>
-                <Dashboard user={auth.user} />
-              </Require>
-            }
-          />
+          <Route path="/issues" element={<Require user={auth.user}><Issues user={auth.user} /></Require>} />
+          <Route path="/rewards" element={<Require user={auth.user}><Rewards user={auth.user} /></Require>} />
+          <Route path="/map" element={<Require user={auth.user}><CitizenMap /></Require>} />
+          <Route path="/issues/:id" element={<Require user={auth.user}><Detail user={auth.user} /></Require>} />
+          <Route path="/dashboard" element={<Require user={auth.user}><Dashboard user={auth.user} /></Require>} />
+          
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/guidelines" element={<CommunityGuidelines />} />
-          {/* THE FIX: Catch-all route for any undefined URLs */}
+          
+          <Route path="/500" element={<ServerError />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
