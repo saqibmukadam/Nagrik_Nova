@@ -1,5 +1,4 @@
 import Rewards from "./Rewards";
-import { NotFound, ServerError } from './UXStates';
 // Find your existing UXStates import and add SessionExpiredModal
 import { NotFound, ServerError, SessionExpiredModal } from './UXStates';
 import { PrivacyPolicy, TermsOfService, CommunityGuidelines } from "./Legal";
