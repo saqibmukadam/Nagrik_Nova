@@ -1,4 +1,5 @@
 import Rewards from "./Rewards";
+import { NotFound, ServerError } from './UXStates';
 import { PrivacyPolicy, TermsOfService, CommunityGuidelines } from "./Legal";
 import { Bot } from 'lucide-react'; // Or swap for a custom emoji/image!
 import CitizenMap from "./CitizenMap";
@@ -165,6 +166,7 @@ function App() {
           <Route path="/vr-map" element={<Require user={auth.user}><VRCommandCenter /></Require>} />
           <Route path="/login" element={<Login auth={auth} />} />
           <Route path="/register" element={<Register auth={auth} />} />
+          <Route path="/500" element={<ServerError />} />
           <Route
             path="/issues"
             element={
@@ -208,6 +210,8 @@ function App() {
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/guidelines" element={<CommunityGuidelines />} />
+          {/* THE FIX: Catch-all route for any undefined URLs */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
       <Footer />
