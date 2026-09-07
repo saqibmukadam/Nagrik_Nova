@@ -167,6 +167,30 @@ app.delete("/api/users/:id", async (req, res) => {
   }
 });
 
+// You probably already have this at the top of your file from your register route!
+const bcrypt = require("bcrypt"); 
+
+// 3. Update User Password
+app.put("/api/users/:id/password", async (req, res) => {
+  try {
+    const { newPassword } = req.body;
+    
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters." });
+    }
+    
+    // Encrypt the new password before saving it to MongoDB
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    
+    await User.findByIdAndUpdate(req.params.id, { password: hashedPassword });
+    
+    res.json({ message: "Password updated successfully" });
+  } catch (error) {
+    console.error("Error updating password:", error);
+    res.status(500).json({ message: "Server error updating password" });
+  }
+});
 // --- REDEEM COINS ROUTE ---
 app.post('/api/users/:id/redeem', async (req, res) => {
   try {
