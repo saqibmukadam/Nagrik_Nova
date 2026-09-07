@@ -3,7 +3,6 @@ import { User, Lock, Trash2, Save, ArrowLeft, ShieldAlert, Pencil, X } from "luc
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 
-// THE FIX: Added the auth token interceptor so the backend knows who is making the request
 const api = axios.create({ baseURL: 'https://nagrik-nova.onrender.com/api' });
 api.interceptors.request.use((c) => {
   const t = localStorage.getItem("nn-token");
@@ -30,11 +29,13 @@ export default function AccountSettings({ user, auth }) {
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Password state variables
   const [newPassword, setNewPassword] = useState("");
   const [passMsg, setPassMsg] = useState("");
   const [passErr, setPassErr] = useState("");
   const [savingPass, setSavingPass] = useState(false);
-  const [showPass, setShowPass] = useState(false); // For the eye icon
+  const [showPass, setShowPass] = useState(false);
 
   const toggleEdit = (field) => {
     setEditState(prev => ({ ...prev, [field]: !prev[field] }));
@@ -48,7 +49,6 @@ export default function AccountSettings({ user, auth }) {
     
     try {
       const userId = user.id || user._id;
-      // THE FIX: Actually send the updated data to your Node.js backend
       await api.put(`/users/${userId}`, {
         name: formData.name,
         email: formData.email,
@@ -56,39 +56,18 @@ export default function AccountSettings({ user, auth }) {
         address: formData.address
       });
 
-      // Update the local state so the UI feels instant
       auth.updateUser({
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
         address: formData.address
       });
-
-      const handlePasswordUpdate = async (e) => {
-    e.preventDefault();
-    setSavingPass(true);
-    setPassMsg("");
-    setPassErr("");
-
-    try {
-      const userId = user.id || user._id;
-      await api.put(`/users/${userId}/password`, { newPassword });
-      setPassMsg("Password successfully securely updated!");
-      setNewPassword(""); // Clear the field
-    } catch (error) {
-      setPassErr(error.response?.data?.message || "Failed to update password.");
-    } finally {
-      setSavingPass(false);
-    }
-  };
       
       setMsg("Profile updated successfully in the database!");
       setEditState({ name: false, email: false, phone: false, address: false });
     } catch (error) {
       console.error("Save error:", error);
-      setErr("Failed to save to database. Make sure your backend has a PUT /api/users/:id route!");
-      
-      // Fallback: still save locally even if backend fails so UX doesn't break
+      setErr("Failed to save to database.");
       auth.updateUser({
         name: formData.name, email: formData.email, phone: formData.phone, address: formData.address
       });
@@ -97,8 +76,23 @@ export default function AccountSettings({ user, auth }) {
     }
   };
 
-  const handlePasswordReset = () => {
-    alert(`A password reset link has been sent to ${formData.email}. (Note: Backend email server integration required for live delivery!)`);
+  // THE MISSING FUNCTION: Handles password updates safely
+  const handlePasswordUpdate = async (e) => {
+    e.preventDefault();
+    setSavingPass(true);
+    setPassMsg("");
+    setPassErr("");
+
+    try {
+      const userId = user.id || user._id;
+      await api.put(`/users/${userId}/password`, { newPassword });
+      setPassMsg("Password successfully and securely updated!");
+      setNewPassword("");
+    } catch (error) {
+      setPassErr(error.response?.data?.message || "Failed to update password.");
+    } finally {
+      setSavingPass(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -106,15 +100,13 @@ export default function AccountSettings({ user, auth }) {
     if (confirm) {
       try {
         const userId = user.id || user._id;
-        // THE FIX: Tell the backend to actually wipe the database record
         await api.delete(`/users/${userId}`);
-        
         alert("Account permanently deleted from the server.");
         auth.out();
         nav("/");
       } catch (error) {
         console.error("Delete error:", error);
-        alert("Failed to delete account from server. Ensure your backend has a DELETE /api/users/:id route.");
+        alert("Failed to delete account from server.");
       }
     }
   };
