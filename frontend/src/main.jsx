@@ -42,6 +42,7 @@ import {
   ThumbsUp,       
   HandHeart,
   Eye,
+  EyeOff,
   Moon, 
   Sun 
 } from "lucide-react";
@@ -151,8 +152,15 @@ const useAuth = () => {
     localStorage.removeItem("nn-user");
     setUser(null);
   };
+
+  // THE FIX: Added a way to update local user data from the settings page!
+  const updateUser = (updates) => {
+    const updatedUser = { ...user, ...updates };
+    localStorage.setItem("nn-user", JSON.stringify(updatedUser));
+    setUser(updatedUser);
+  };
   
-  return { user, signIn, out };
+  return { user, signIn, out, updateUser };
 };
 
 // --- IMAGE UPLOAD HELPER ---
@@ -626,11 +634,29 @@ function Register({ auth }) {
   );
 }
 
-function Field({ label, ...props }) {
+function Field({ label, type = "text", ...props }) {
+  const [show, setShow] = useState(false);
+  const isPassword = type === "password";
+  
   return (
-    <label>
+    <label style={{ position: 'relative', display: 'block' }}>
       {label}
-      <input required {...props} />
+      <input 
+        required 
+        type={isPassword ? (show ? "text" : "password") : type} 
+        {...props} 
+        style={{ paddingRight: isPassword ? '40px' : '15px', width: '100%' }} 
+      />
+      {isPassword && (
+        <button
+          type="button" // Important so it doesn't submit the form!
+          onClick={() => setShow(!show)}
+          style={{ position: 'absolute', right: '12px', bottom: '12px', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}
+          title={show ? "Hide password" : "Show password"}
+        >
+          {show ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
+      )}
     </label>
   );
 }

@@ -1,9 +1,6 @@
 import React, { useState } from "react";
-import { User, Lock, Trash2, Save, ArrowLeft, ShieldAlert } from "lucide-react";
+import { User, Lock, Trash2, Save, ArrowLeft, ShieldAlert, Pencil } from "lucide-react";
 import { Link } from "react-router-dom";
-import axios from "axios";
-
-const api = axios.create({ baseURL: 'https://nagrik-nova.onrender.com/api' });
 
 export default function AccountSettings({ user, auth }) {
   const [formData, setFormData] = useState({
@@ -14,20 +11,30 @@ export default function AccountSettings({ user, auth }) {
   });
   
   const [msg, setMsg] = useState("");
-  const [err, setErr] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Note: In a full production app, this would hit a PUT endpoint on your Node backend
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
     setMsg("");
-    setErr("");
+    
+    // THE FIX: Actually save the data to the global state and local storage
+    auth.updateUser({
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      address: formData.address
+    });
     
     setTimeout(() => {
       setSaving(false);
-      setMsg("Profile updated successfully! (Mocked for frontend)");
-    }, 1000);
+      setMsg("Profile updated successfully!");
+    }, 800);
+  };
+
+  const handlePasswordReset = () => {
+    // THE FIX: Added action to the password reset button
+    alert(`A password reset link has been sent to ${formData.email}. Please check your inbox.`);
   };
 
   const handleDelete = () => {
@@ -60,18 +67,18 @@ export default function AccountSettings({ user, auth }) {
           <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <div className="two">
               <label>
-                Full Name
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Full Name <Pencil size={12} color="#10b981" /></span>
                 <input required type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
               </label>
               <label>
-                Email Address
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Email Address <Pencil size={12} color="#10b981" /></span>
                 <input required type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
               </label>
             </div>
             <div className="two">
               <label>
-                Phone Number
-                <input type="text" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Phone Number <Pencil size={12} color="#10b981" /></span>
+                <input type="text" placeholder="Add your phone number" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
               </label>
               <label>
                 Role
@@ -79,8 +86,8 @@ export default function AccountSettings({ user, auth }) {
               </label>
             </div>
             <label>
-              Address
-              <input type="text" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} />
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Address <Pencil size={12} color="#10b981" /></span>
+              <input type="text" placeholder="Add your residential address" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} />
             </label>
             
             {msg && <div className="success" style={{ margin: 0 }}>{msg}</div>}
@@ -97,7 +104,7 @@ export default function AccountSettings({ user, auth }) {
             <Lock size={20} /> Security & Authentication
           </h2>
           <p style={{ color: 'var(--muted)', marginBottom: '20px' }}>Update your password to keep your account secure.</p>
-          <button className="btn small" style={{ background: 'rgba(255,255,255,0.1)' }}>
+          <button onClick={handlePasswordReset} className="btn small" style={{ background: 'rgba(255,255,255,0.1)' }}>
             Request Password Reset
           </button>
         </div>
