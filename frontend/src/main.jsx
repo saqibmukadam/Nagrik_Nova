@@ -1,4 +1,5 @@
 import Rewards from "./Rewards";
+import { PrivacyPolicy, TermsOfService, CommunityGuidelines } from "./Legal";
 import { Bot } from 'lucide-react'; // Or swap for a custom emoji/image!
 import CitizenMap from "./CitizenMap";
 import AIChatWidget from './AIChatWidget';
@@ -204,6 +205,9 @@ function App() {
               </Require>
             }
           />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/guidelines" element={<CommunityGuidelines />} />
         </Routes>
       </main>
       <Footer />
