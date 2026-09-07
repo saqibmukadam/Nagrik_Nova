@@ -30,6 +30,11 @@ export default function AccountSettings({ user, auth }) {
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const [saving, setSaving] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [passMsg, setPassMsg] = useState("");
+  const [passErr, setPassErr] = useState("");
+  const [savingPass, setSavingPass] = useState(false);
+  const [showPass, setShowPass] = useState(false); // For the eye icon
 
   const toggleEdit = (field) => {
     setEditState(prev => ({ ...prev, [field]: !prev[field] }));
@@ -58,6 +63,24 @@ export default function AccountSettings({ user, auth }) {
         phone: formData.phone,
         address: formData.address
       });
+
+      const handlePasswordUpdate = async (e) => {
+    e.preventDefault();
+    setSavingPass(true);
+    setPassMsg("");
+    setPassErr("");
+
+    try {
+      const userId = user.id || user._id;
+      await api.put(`/users/${userId}/password`, { newPassword });
+      setPassMsg("Password successfully securely updated!");
+      setNewPassword(""); // Clear the field
+    } catch (error) {
+      setPassErr(error.response?.data?.message || "Failed to update password.");
+    } finally {
+      setSavingPass(false);
+    }
+  };
       
       setMsg("Profile updated successfully in the database!");
       setEditState({ name: false, email: false, phone: false, address: false });
@@ -187,9 +210,35 @@ export default function AccountSettings({ user, auth }) {
             <Lock size={20} /> Security & Authentication
           </h2>
           <p style={{ color: 'var(--muted)', marginBottom: '20px' }}>Update your password to keep your account secure.</p>
-          <button onClick={handlePasswordReset} className="btn small" style={{ background: 'rgba(255,255,255,0.1)' }}>
-            Request Password Reset
-          </button>
+          
+          <form onSubmit={handlePasswordUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '15px', maxWidth: '400px' }}>
+            <label style={{ position: 'relative' }}>
+              New Password
+              <input 
+                required 
+                type={showPass ? "text" : "password"} 
+                minLength="6"
+                placeholder="Enter at least 6 characters"
+                value={newPassword} 
+                onChange={(e) => setNewPassword(e.target.value)}
+                style={{ width: '100%', paddingRight: '40px' }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPass(!showPass)}
+                style={{ position: 'absolute', right: '12px', bottom: '12px', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}
+              >
+                {showPass ? <X size={18} /> : <Lock size={18} />} 
+              </button>
+            </label>
+            
+            {passMsg && <div className="success" style={{ margin: 0 }}>{passMsg}</div>}
+            {passErr && <div className="error" style={{ margin: 0 }}>{passErr}</div>}
+            
+            <button type="submit" className="btn small" disabled={savingPass || !newPassword}>
+              <Lock size={16} /> {savingPass ? "Encrypting..." : "Update Password"}
+            </button>
+          </form>
         </div>
 
         {/* Danger Zone */}
