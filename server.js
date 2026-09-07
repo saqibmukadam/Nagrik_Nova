@@ -126,6 +126,47 @@ app.get('/api/users/:id', async (req, res) => {
   }
 });
 
+// --- CUSTOMER LIFECYCLE ROUTES (Account Settings) ---
+
+// 1. Update User Profile
+app.put("/api/users/:id", async (req, res) => {
+  try {
+    // Finds the user by ID and updates only the provided fields
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id, 
+      { 
+        name: req.body.name, 
+        email: req.body.email, 
+        phone: req.body.phone, 
+        address: req.body.address 
+      }, 
+      { new: true } // Tells MongoDB to send back the newly updated data
+    );
+    
+    if (!updatedUser) return res.status(404).json({ message: "User not found" });
+    
+    res.json(updatedUser);
+  } catch (error) {
+    console.error("Error updating user:", error);
+    res.status(500).json({ message: "Server error updating profile" });
+  }
+});
+
+// 2. Delete User Account
+app.delete("/api/users/:id", async (req, res) => {
+  try {
+    // Permanently removes the user from the database
+    const deletedUser = await User.findByIdAndDelete(req.params.id);
+    
+    if (!deletedUser) return res.status(404).json({ message: "User not found" });
+    
+    res.json({ message: "Account deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    res.status(500).json({ message: "Server error deleting account" });
+  }
+});
+
 // --- REDEEM COINS ROUTE ---
 app.post('/api/users/:id/redeem', async (req, res) => {
   try {
