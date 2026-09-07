@@ -1,8 +1,18 @@
 import React, { useState } from "react";
 import { User, Lock, Trash2, Save, ArrowLeft, ShieldAlert, Pencil, X } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
+
+// THE FIX: Added the auth token interceptor so the backend knows who is making the request
+const api = axios.create({ baseURL: 'https://nagrik-nova.onrender.com/api' });
+api.interceptors.request.use((c) => {
+  const t = localStorage.getItem("nn-token");
+  if (t) c.headers.Authorization = `Bearer ${t}`;
+  return c;
+});
 
 export default function AccountSettings({ user, auth }) {
+  const nav = useNavigate();
   const [formData, setFormData] = useState({
     name: user?.name || "",
     email: user?.email || "",
@@ -10,7 +20,6 @@ export default function AccountSettings({ user, auth }) {
     address: user?.address || "",
   });
   
-  // THE FIX: Track which fields are actively being edited
   const [editState, setEditState] = useState({
     name: false,
     email: false,
@@ -19,9 +28,9 @@ export default function AccountSettings({ user, auth }) {
   });
   
   const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Toggle the edit lock for a specific field
   const toggleEdit = (field) => {
     setEditState(prev => ({ ...prev, [field]: !prev[field] }));
   };
@@ -30,36 +39,63 @@ export default function AccountSettings({ user, auth }) {
     e.preventDefault();
     setSaving(true);
     setMsg("");
+    setErr("");
     
-    auth.updateUser({
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      address: formData.address
-    });
-    
-    setTimeout(() => {
-      setSaving(false);
-      setMsg("Profile updated successfully!");
-      // THE FIX: Lock all fields again after a successful save
+    try {
+      const userId = user.id || user._id;
+      // THE FIX: Actually send the updated data to your Node.js backend
+      await api.put(`/users/${userId}`, {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address
+      });
+
+      // Update the local state so the UI feels instant
+      auth.updateUser({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address
+      });
+      
+      setMsg("Profile updated successfully in the database!");
       setEditState({ name: false, email: false, phone: false, address: false });
-    }, 800);
-  };
-
-  const handlePasswordReset = () => {
-    // Clarified that this is currently a frontend mockup
-    alert(`A password reset link has been sent to ${formData.email}. (Note: Backend email server integration required for live delivery!)`);
-  };
-
-  const handleDelete = () => {
-    const confirm = window.confirm("Are you absolutely sure? This will permanently delete your account and all reported civic issues. This action cannot be undone.");
-    if (confirm) {
-      alert("Account deletion triggered. You will now be logged out.");
-      auth.out();
+    } catch (error) {
+      console.error("Save error:", error);
+      setErr("Failed to save to database. Make sure your backend has a PUT /api/users/:id route!");
+      
+      // Fallback: still save locally even if backend fails so UX doesn't break
+      auth.updateUser({
+        name: formData.name, email: formData.email, phone: formData.phone, address: formData.address
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
-  // Helper function to style disabled inputs
+  const handlePasswordReset = () => {
+    alert(`A password reset link has been sent to ${formData.email}. (Note: Backend email server integration required for live delivery!)`);
+  };
+
+  const handleDelete = async () => {
+    const confirm = window.confirm("Are you absolutely sure? This will permanently delete your account and all reported civic issues. This action cannot be undone.");
+    if (confirm) {
+      try {
+        const userId = user.id || user._id;
+        // THE FIX: Tell the backend to actually wipe the database record
+        await api.delete(`/users/${userId}`);
+        
+        alert("Account permanently deleted from the server.");
+        auth.out();
+        nav("/");
+      } catch (error) {
+        console.error("Delete error:", error);
+        alert("Failed to delete account from server. Ensure your backend has a DELETE /api/users/:id route.");
+      }
+    }
+  };
+
   const inputStyle = (isEditing) => ({
     opacity: isEditing ? 1 : 0.6,
     cursor: isEditing ? 'text' : 'not-allowed',
@@ -137,6 +173,7 @@ export default function AccountSettings({ user, auth }) {
             </label>
             
             {msg && <div className="success" style={{ margin: 0 }}>{msg}</div>}
+            {err && <div className="error" style={{ margin: 0 }}>{err}</div>}
             
             <button type="submit" className="btn" disabled={saving || !Object.values(editState).some(Boolean)} style={{ alignSelf: 'flex-start', marginTop: '10px' }}>
               <Save size={16} /> {saving ? "Saving..." : "Save Changes"}
