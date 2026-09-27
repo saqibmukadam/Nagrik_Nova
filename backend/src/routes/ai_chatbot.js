@@ -1,27 +1,76 @@
 import express from "express";
 import supabase from "../supabase.js";
 import Groq from "groq-sdk";
+import multer from "multer";
 
 const router = express.Router();
 
+// Initialize Groq using your environment variable
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
+// Configure multer to hold the uploaded image in memory
+const upload = multer({ storage: multer.memoryStorage() });
 
 // =====================================================
-// NOVA AI CHAT
+// 1. SMART SCANNER (GROQ VISION)
+// =====================================================
+
+router.post("/scan", upload.single("image"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No image file provided." });
+    }
+
+    // Convert the image buffer to a base64 Data URL for the Groq Vision model
+    const base64Image = req.file.buffer.toString("base64");
+    const imageUrl = `data:${req.file.mimetype};base64,${base64Image}`;
+
+    const prompt = `Analyze this image of a civic infrastructure issue. 
+    Respond STRICTLY with a valid JSON object in this exact format:
+    {
+      "title": "A short, specific title (e.g., Deep Pothole on Main Road)",
+      "description": "A 2-3 sentence detailed description of the visible hazard and its potential impact."
+    }`;
+
+    // Call Groq's Llama 3.2 Vision model
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            { type: "image_url", image_url: { url: imageUrl } },
+          ],
+        },
+      ],
+      model: "llama-3.2-11b-vision-preview",
+      temperature: 0.1,
+      response_format: { type: "json_object" }, 
+    });
+
+    const responseText = chatCompletion.choices[0].message.content;
+    const parsedData = JSON.parse(responseText);
+
+    res.status(200).json({
+      title: parsedData.title,
+      description: parsedData.description,
+    });
+  } catch (error) {
+    console.error("Backend Groq Vision Error:", error);
+    res.status(500).json({ message: "Failed to analyze image with Groq AI." });
+  }
+});
+
+
+// =====================================================
+// 2. NOVA AI CHAT
 // =====================================================
 
 router.post("/chat", async (req, res) => {
   try {
-
-    const {
-      message,
-      history,
-      userId,
-    } = req.body;
-
+    const { message, history, userId } = req.body;
 
     if (!message || !message.trim()) {
       return res.status(400).json({
@@ -29,66 +78,11 @@ router.post("/chat", async (req, res) => {
       });
     }
 
-    const express = require('express');
-const router = express.Router();
-const multer = require('multer');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-
-// Hold the uploaded image in memory so Gemini can process it
-const upload = multer({ storage: multer.memoryStorage() });
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-router.post('/scan', upload.single('image'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ message: "No image file provided." });
-    }
-
-    // gemini-1.5-flash is optimized for fast multimodal tasks like image scanning
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    
-    const imagePart = {
-      inlineData: {
-        data: req.file.buffer.toString("base64"),
-        mimeType: req.file.mimetype
-      }
-    };
-
-    const prompt = `Analyze this image of a civic infrastructure issue. 
-    Respond STRICTLY with a valid JSON object in this exact format, with no markdown formatting or backticks:
-    {
-      "title": "A short, specific title (e.g., Deep Pothole on Main Road)",
-      "description": "A 2-3 sentence detailed description of the visible hazard and its potential impact."
-    }`;
-
-    const result = await model.generateContent([prompt, imagePart]);
-    
-    // Clean up any potential markdown formatting the AI might add
-    const responseText = result.response.text().trim().replace(/```json/g, '').replace(/```/g, '');
-    const parsedData = JSON.parse(responseText);
-
-    res.status(200).json({
-      title: parsedData.title,
-      description: parsedData.description
-    });
-
-  } catch (error) {
-    console.error("Backend Gemini Vision Error:", error);
-    res.status(500).json({ message: "Failed to analyze image with AI." });
-  }
-});
-
-module.exports = router;
-
-
     // =================================================
     // 1. GET RECENT ACTIVE COMPLAINTS
     // =================================================
 
-    const {
-      data: activeIssues,
-      error: issuesError,
-    } = await supabase
+    const { data: activeIssues, error: issuesError } = await supabase
       .from("issues")
       .select(`
         id,
@@ -109,14 +103,9 @@ module.exports = router;
       })
       .limit(5);
 
-
     if (issuesError) {
-      console.error(
-        "Nova active issues error:",
-        issuesError
-      );
+      console.error("Nova active issues error:", issuesError);
     }
-
 
     // =================================================
     // 2. PREPARE DATABASE CONTEXT
@@ -135,37 +124,26 @@ module.exports = router;
           }))
         : [];
 
-
     const dbContextString =
       dbContext.length > 0
         ? JSON.stringify(dbContext)
         : "No active complaints found.";
 
-
     // =================================================
     // 3. PREPARE CONVERSATION HISTORY
     // =================================================
 
-    const safeHistory =
-      Array.isArray(history)
-        ? history.slice(-10)
-        : [];
-
+    const safeHistory = Array.isArray(history) ? history.slice(-10) : [];
 
     const historyTranscript =
       safeHistory.length > 0
         ? safeHistory
             .map((item) => {
-              const speaker =
-                item.role === "user"
-                  ? "Citizen"
-                  : "Nova";
-
+              const speaker = item.role === "user" ? "Citizen" : "Nova";
               return `${speaker}: ${item.text || ""}`;
             })
             .join("\n")
         : "No previous conversation.";
-
 
     // =================================================
     // 4. NOVA PROMPT
@@ -318,134 +296,72 @@ If the complaint is ready to save, use "final_report".
 If more information is required, use "processing".
 `;
 
-
     // =================================================
     // 5. CALL GROQ
     // =================================================
 
-    const completion =
-      await groq.chat.completions.create({
-
-        model: "openai/gpt-oss-120b",
-
-        messages: [
-
-          {
-            role: "system",
-            content:
-              "You are Nova, Nagrik Nova's civic AI assistant. Return only valid JSON.",
-          },
-
-          {
-            role: "user",
-            content: prompt,
-          },
-
-        ],
-
-        temperature: 0.2,
-
-        max_completion_tokens: 700,
-
-        reasoning_effort: "low",
-
-        include_reasoning: false,
-
-        response_format: {
-          type: "json_object",
+    const completion = await groq.chat.completions.create({
+      model: "openai/gpt-oss-120b",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are Nova, Nagrik Nova's civic AI assistant. Return only valid JSON.",
         },
-
-      });
-
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0.2,
+      max_completion_tokens: 700,
+      reasoning_effort: "low",
+      include_reasoning: false,
+      response_format: {
+        type: "json_object",
+      },
+    });
 
     // =================================================
     // 6. READ AI RESPONSE
     // =================================================
 
-    const aiText =
-      completion.choices?.[0]
-        ?.message?.content;
-
+    const aiText = completion.choices?.[0]?.message?.content;
 
     if (!aiText) {
-
       return res.status(500).json({
-        message:
-          "Nova did not return a response.",
+        message: "Nova did not return a response.",
       });
-
     }
-
 
     let aiResult;
 
     try {
-
-      aiResult =
-        JSON.parse(aiText);
-
+      aiResult = JSON.parse(aiText);
     } catch (parseError) {
-
-      console.error(
-        "Nova JSON parse error:",
-        parseError
-      );
-
-      console.error(
-        "Nova response:",
-        aiText
-      );
+      console.error("Nova JSON parse error:", parseError);
+      console.error("Nova response:", aiText);
 
       return res.status(500).json({
-        message:
-          "Nova returned an invalid response.",
+        message: "Nova returned an invalid response.",
       });
-
     }
-
 
     // =================================================
     // 7. VALIDATE AI DATA
     // =================================================
 
-    const dataToSave =
-      aiResult.dataToSave || {};
+    const dataToSave = aiResult.dataToSave || {};
 
-
-    const description =
-      String(
-        dataToSave.description || ""
-      ).trim();
-
-
-    const location =
-      String(
-        dataToSave.location || ""
-      ).trim();
-
-
-    const category =
-      String(
-        dataToSave.category || ""
-      ).trim();
-
-
-    const title =
-      String(
-        dataToSave.title || "Civic Issue"
-      ).trim();
-
-
-    let severity =
-      Number(
-        dataToSave.severity
-      );
-
+    const description = String(dataToSave.description || "").trim();
+    const location = String(dataToSave.location || "").trim();
+    const category = String(dataToSave.category || "").trim();
+    const title = String(dataToSave.title || "Civic Issue").trim();
+    let severity = Number(dataToSave.severity);
 
     if (![1, 2, 3].includes(severity)) {
       severity = 1;
     }
-
 
     // =================================================
     // 8. IF NOT READY → CONTINUE CONVERSATION
@@ -456,19 +372,13 @@ If more information is required, use "processing".
       !description ||
       !location
     ) {
-
       return res.json({
-
         message:
           aiResult.message ||
           "Could you provide a little more information about the issue and its location?",
-
         status: "processing",
-
       });
-
     }
-
 
     // =================================================
     // 9. MAP SEVERITY TO NAGRIK NOVA PRIORITY
@@ -482,103 +392,50 @@ If more information is required, use "processing".
       priority = "Medium";
     }
 
-
     // =================================================
     // 10. CREATE COMPLAINT
     // =================================================
 
-    const {
-      data: issue,
-      error: insertError,
-    } = await supabase
+    const { data: issue, error: insertError } = await supabase
       .from("issues")
       .insert({
-
         title,
-
         description,
-
         city: location,
-
-        submitted_by:
-          userId || null,
-
-        submitter_role:
-          userId
-            ? "citizen"
-            : "citizen",
-
-        domain:
-          category || null,
-
+        submitted_by: userId || null,
+        submitter_role: userId ? "citizen" : "citizen",
+        domain: category || null,
         priority,
-
-        status:
-          "Submitted",
-
+        status: "Submitted",
         required_expertise: [],
-
         solution_idea: null,
-
         analyzed: false,
-
       })
       .select("*")
       .single();
 
-
     if (insertError) {
-
-      console.error(
-        "Nova complaint insert error:",
-        insertError
-      );
-
+      console.error("Nova complaint insert error:", insertError);
       return res.status(500).json({
-
-        message:
-          "I understood the complaint, but I could not save it right now.",
-
+        message: "I understood the complaint, but I could not save it right now.",
       });
-
     }
-
 
     // =================================================
     // 11. FINAL RESPONSE
     // =================================================
 
     return res.json({
-
-      message:
-        aiResult.message ||
-        "Your complaint has been submitted successfully.",
-
-      status:
-        "final_report",
-
+      message: aiResult.message || "Your complaint has been submitted successfully.",
+      status: "final_report",
       issue,
-
     });
-
-
   } catch (error) {
-
-    console.error(
-      "Nova AI chat error:",
-      error
-    );
-
+    console.error("Nova AI chat error:", error);
     return res.status(500).json({
-
-      message:
-        "Sorry, Nova is temporarily unavailable. Please try again.",
-
+      message: "Sorry, Nova is temporarily unavailable. Please try again.",
     });
-
   }
-
 });
-
 
 export default router;
