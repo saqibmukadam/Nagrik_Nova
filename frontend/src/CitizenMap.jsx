@@ -16,15 +16,8 @@ const api = axios.create({
 
 // Automatically attach the JWT token to every map request to clear 401 Unauthorized errors
 api.interceptors.request.use((config) => {
-  let token = localStorage.getItem('token');
-  if (!token) {
-    try {
-      const userStr = localStorage.getItem('user');
-      if (userStr) token = JSON.parse(userStr).token;
-    } catch (e) {
-      console.error("Error parsing user token");
-    }
-  }
+  // Pulling Saniya's specific 'nn-token' key
+  const token = localStorage.getItem('nn-token');
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
