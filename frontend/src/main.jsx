@@ -3,6 +3,7 @@ import VRCommandCenter from "./VRCommandCenter";
 import VoiceInput from "./VoiceInput.jsx";
 import React, { useEffect, useState } from "react";
 import AIChatWidget from "./AIChatWidget.jsx";
+import IssueScanner from "./IssueScanner.jsx";
 import { createRoot } from "react-dom/client";
 import Rewards from "./Rewards";
 import AccountSettings from "./AccountSettings.jsx";
@@ -661,6 +662,7 @@ function Dashboard({ user }) {
             Be specific. Your details help partners understand where action is
             needed.
           </p>
+          <IssueScanner data={data} setData={setData} />
           <VoiceInput
             key={voiceResetKey}
             data={data}
