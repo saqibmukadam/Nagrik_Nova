@@ -4,6 +4,7 @@ import VoiceInput from "./VoiceInput.jsx";
 import React, { useEffect, useState } from "react";
 import AIChatWidget from "./AIChatWidget.jsx";
 import { createRoot } from "react-dom/client";
+import Rewards from "./Rewards";
 import AccountSettings from "./AccountSettings.jsx";
 import {
   BrowserRouter,
@@ -82,6 +83,15 @@ function App() {
               </Require>
             }
           />
+
+          <Route
+  path="/rewards"
+  element={
+    <Require user={auth.user}>
+      <Rewards user={auth.user} />
+    </Require>
+  }
+/>
           <Route
             path="/issues/:id"
             element={
@@ -168,6 +178,7 @@ function Nav({ auth }) {
       <nav className={open ? "show" : ""}>
         <NavLink to="/issues">Explore issues</NavLink>
         <NavLink to="/citizen-map">Live Map</NavLink>
+        <NavLink to="/rewards">Rewards</NavLink>
         {auth.user && ["citizen", "ngo"].includes(auth.user.role) && (
           <NavLink to="/dashboard">My dashboard</NavLink>
         )}
