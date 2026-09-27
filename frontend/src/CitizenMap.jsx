@@ -7,8 +7,13 @@ import {
 } from "react-leaflet";
 import { Link } from "react-router-dom";
 import { ArrowRight, MapPin } from "lucide-react";
-import { api } from "./main.jsx";
+import axios from "axios";
 import "leaflet/dist/leaflet.css";
+
+// Replaced the internal main.jsx import with the verified live environment routing
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'https://nagrik-nova.onrender.com/api',
+});
 
 export default function CitizenMap() {
   const [issues, setIssues] = useState([]);
@@ -20,20 +25,11 @@ export default function CitizenMap() {
     const loadIssues = async () => {
       try {
         setError("");
-
         const response = await api.get("/issues");
-
         setIssues(response.data || []);
       } catch (err) {
-        console.error(
-          "Failed to fetch map issues:",
-          err
-        );
-
-        setError(
-          err.response?.data?.message ||
-            "Could not load civic issues."
-        );
+        console.error("Failed to fetch map issues:", err);
+        setError(err.response?.data?.message || "Could not load civic issues.");
       }
     };
 
@@ -46,34 +42,21 @@ export default function CitizenMap() {
    */
   const positionedIssues = useMemo(() => {
     return issues.map((issue, index) => {
-      const location =
-        issue.location ||
-        issue.street ||
-        "";
-
-      const match = String(location).match(
-        /(-?\d+\.\d+),\s*(-?\d+\.\d+)/
-      );
-
+      const location = issue.location || issue.street || "";
+      const match = String(location).match(/(-?\d+\.\d+),\s*(-?\d+\.\d+)/);
       let coords;
 
       if (match) {
-        coords = [
-          parseFloat(match[1]),
-          parseFloat(match[2]),
-        ];
+        coords = [parseFloat(match[1]), parseFloat(match[2])];
       } else {
         /*
          * Stable fallback position around the map center.
          */
         const angle = index * 0.7;
         const radius = 0.005 + (index % 5) * 0.002;
-
         coords = [
-          center[0] +
-            Math.sin(angle) * radius,
-          center[1] +
-            Math.cos(angle) * radius,
+          center[0] + Math.sin(angle) * radius,
+          center[1] + Math.cos(angle) * radius,
         ];
       }
 
@@ -88,13 +71,10 @@ export default function CitizenMap() {
     switch (priority?.toLowerCase()) {
       case "high":
         return "#ff4444";
-
       case "medium":
         return "#ffcc00";
-
       case "low":
         return "#4CAF50";
-
       default:
         return "#00e5ff";
     }
@@ -103,12 +83,7 @@ export default function CitizenMap() {
   return (
     <section
       className="page"
-      style={{
-        padding: 0,
-        height: "100vh",
-        width: "100vw",
-        overflow: "hidden",
-      }}
+      style={{ padding: 0, height: "100vh", width: "100vw", overflow: "hidden" }}
     >
       <div
         style={{
@@ -123,38 +98,15 @@ export default function CitizenMap() {
           backdropFilter: "blur(5px)",
         }}
       >
-        <h2
-          style={{
-            margin: "0 0 10px 0",
-            fontSize: "18px",
-            color: "white",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-          }}
-        >
+        <h2 style={{ margin: "0 0 10px 0", fontSize: "18px", color: "white", display: "flex", alignItems: "center", gap: "6px" }}>
           <MapPin size={16} />
           Live Citizen Heatmap
         </h2>
-
-        <p
-          style={{
-            margin: 0,
-            fontSize: "12px",
-            color: "#aaa",
-          }}
-        >
+        <p style={{ margin: 0, fontSize: "12px", color: "#aaa" }}>
           Tracking active signals across the city.
         </p>
-
         {error && (
-          <p
-            style={{
-              marginTop: "10px",
-              color: "#ff6666",
-              fontSize: "12px",
-            }}
-          >
+          <p style={{ marginTop: "10px", color: "#ff6666", fontSize: "12px" }}>
             {error}
           </p>
         )}
@@ -163,11 +115,7 @@ export default function CitizenMap() {
       <MapContainer
         center={center}
         zoom={13}
-        style={{
-          width: "100%",
-          height: "100%",
-          background: "#111",
-        }}
+        style={{ width: "100%", height: "100%", background: "#111" }}
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -175,19 +123,12 @@ export default function CitizenMap() {
         />
 
         {positionedIssues.map((issue) => {
-          const safeLocation =
-            issue.location ||
-            issue.street ||
-            issue.city ||
-            "Location not specified";
-
-          const color = getColor(
-            issue.priority
-          );
+          const safeLocation = issue.location || issue.street || issue.city || "Location not specified";
+          const color = getColor(issue.priority);
 
           return (
             <CircleMarker
-              key={issue.id}
+              key={issue.id || issue._id}
               center={issue.coords}
               pathOptions={{
                 color,
@@ -198,62 +139,19 @@ export default function CitizenMap() {
               radius={8}
             >
               <Popup className="custom-popup">
-                <div
-                  style={{
-                    minWidth: "180px",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "10px",
-                      textTransform: "uppercase",
-                      color,
-                      fontWeight: "bold",
-                      letterSpacing: "1px",
-                    }}
-                  >
-                    {issue.analyzed
-                      ? `${issue.priority || "Medium"} Priority`
-                      : "Pending Analysis"}
+                <div style={{ minWidth: "180px" }}>
+                  <span style={{ fontSize: "10px", textTransform: "uppercase", color, fontWeight: "bold", letterSpacing: "1px" }}>
+                    {issue.analyzed ? `${issue.priority || "Medium"} Priority` : "Pending Analysis"}
                   </span>
-
-                  <h3
-                    style={{
-                      margin: "5px 0",
-                      fontSize: "16px",
-                      color: "#fff",
-                    }}
-                  >
-                    {issue.title ||
-                      "Untitled Issue"}
+                  <h3 style={{ margin: "5px 0", fontSize: "16px", color: "#fff" }}>
+                    {issue.title || "Untitled Issue"}
                   </h3>
-
-                  <p
-                    style={{
-                      margin: "0 0 12px 0",
-                      fontSize: "12px",
-                      color: "#aaa",
-                    }}
-                  >
-                    {safeLocation.length > 40
-                      ? safeLocation.substring(
-                          0,
-                          40
-                        ) + "..."
-                      : safeLocation}
+                  <p style={{ margin: "0 0 12px 0", fontSize: "12px", color: "#aaa" }}>
+                    {safeLocation.length > 40 ? safeLocation.substring(0, 40) + "..." : safeLocation}
                   </p>
-
                   <Link
-                    to={`/issues/${issue.id}`}
-                    style={{
-                      color: "#4CAF50",
-                      textDecoration: "none",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "5px",
-                      fontSize: "13px",
-                      fontWeight: "bold",
-                    }}
+                    to={`/issues/${issue.id || issue._id}`}
+                    style={{ color: "#4CAF50", textDecoration: "none", display: "flex", alignItems: "center", gap: "5px", fontSize: "13px", fontWeight: "bold" }}
                   >
                     View Civic Brief
                     <ArrowRight size={14} />
