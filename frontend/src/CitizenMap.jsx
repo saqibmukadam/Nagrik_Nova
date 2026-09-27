@@ -10,9 +10,26 @@ import { ArrowRight, MapPin } from "lucide-react";
 import axios from "axios";
 import "leaflet/dist/leaflet.css";
 
-// Replaced the internal main.jsx import with the verified live environment routing
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'https://nagrik-nova.onrender.com/api',
+});
+
+// Automatically attach the JWT token to every map request to clear 401 Unauthorized errors
+api.interceptors.request.use((config) => {
+  let token = localStorage.getItem('token');
+  if (!token) {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) token = JSON.parse(userStr).token;
+    } catch (e) {
+      console.error("Error parsing user token");
+    }
+  }
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 export default function CitizenMap() {
