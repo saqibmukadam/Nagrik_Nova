@@ -53,21 +53,11 @@ function IssuePillar({ issue, position }) {
   return (
     <group position={[position.x, 0, position.z]}>
       <mesh position={[0, height / 2, 0]}>
-        <cylinderGeometry
-          args={[0.08, 0.08, height, 16]}
-        />
-
-        <meshStandardMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={0.5}
-        />
+        <cylinderGeometry args={[0.08, 0.08, height, 16]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.5} />
       </mesh>
 
-      <group
-        ref={labelRef}
-        position={[0, height + 0.15, 0]}
-      >
+      <group ref={labelRef} position={[0, height + 0.15, 0]}>
         <Text
           position={[0, 0.08, 0]}
           fontSize={0.12}
@@ -106,121 +96,59 @@ export default function VRCommandCenter() {
       try {
         setLoading(true);
         setError("");
-
         const response = await api.get("/issues");
-
         setIssues(response.data || []);
       } catch (err) {
-        console.error(
-          "Failed to fetch VR issues:",
-          err
-        );
-
-        setError(
-          err.response?.data?.message ||
-            "Could not load civic issues."
-        );
+        console.error("Failed to fetch VR issues:", err);
+        setError(err.response?.data?.message || "Could not load civic issues.");
       } finally {
         setLoading(false);
       }
     };
-
     loadIssues();
   }, []);
 
   const positionedIssues = useMemo(() => {
     return issues.map((issue, index) => ({
       ...issue,
-
       position: {
         x: ((index % 7) - 3) * 1.1,
-        z:
-          (Math.floor(index / 7) % 7 - 3) *
-          1.1,
+        z: (Math.floor(index / 7) % 7 - 3) * 1.1,
       },
     }));
   }, [issues]);
 
   return (
-    <div
-      style={{
-        width: "100vw",
-        height: "100vh",
-        backgroundColor: "#111",
-        position: "relative",
-      }}
-    >
+    <div style={{ width: "100vw", height: "100vh", backgroundColor: "#111", position: "relative" }}>
       <button
         className="btn"
         onClick={() => store.enterVR()}
-        style={{
-          position: "absolute",
-          top: 20,
-          left: 20,
-          zIndex: 10,
-          padding: "10px 20px",
-        }}
+        style={{ position: "absolute", top: 20, left: 20, zIndex: 10, padding: "10px 20px" }}
       >
         Enter VR Mode
       </button>
 
       {loading && (
-        <div
-          style={{
-            position: "absolute",
-            top: 20,
-            right: 20,
-            zIndex: 10,
-            color: "white",
-          }}
-        >
+        <div style={{ position: "absolute", top: 20, right: 20, zIndex: 10, color: "white" }}>
           Loading civic issues...
         </div>
       )}
 
       {error && (
-        <div
-          style={{
-            position: "absolute",
-            top: 20,
-            right: 20,
-            zIndex: 10,
-            color: "#ff6666",
-          }}
-        >
+        <div style={{ position: "absolute", top: 20, right: 20, zIndex: 10, color: "#ff6666" }}>
           {error}
         </div>
       )}
 
-      <Canvas
-        camera={{
-          position: [0, 2, 5],
-          fov: 50,
-        }}
-      >
+      <Canvas camera={{ position: [0, 2, 5], fov: 50 }}>
         <XR store={store}>
           <ambientLight intensity={0.5} />
-
-          <pointLight
-            position={[10, 10, 10]}
-            intensity={1}
-          />
-
+          <pointLight position={[10, 10, 10]} intensity={1} />
           <OrbitControls />
-
-          <Grid
-            infiniteGrid
-            fadeDistance={10}
-            sectionColor="#444"
-            cellColor="#222"
-          />
+          <Grid infiniteGrid fadeDistance={10} sectionColor="#444" cellColor="#222" />
 
           {positionedIssues.map((issue) => (
-            <IssuePillar
-              key={issue.id}
-              issue={issue}
-              position={issue.position}
-            />
+            <IssuePillar key={issue.id || issue._id} issue={issue} position={issue.position} />
           ))}
         </XR>
       </Canvas>
