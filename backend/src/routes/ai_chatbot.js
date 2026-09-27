@@ -34,8 +34,7 @@ router.post("/scan", upload.single("image"), async (req, res) => {
       "description": "A 2-3 sentence detailed description of the visible hazard and its potential impact."
     }`;
 
-    // Call Groq's Llama 3.2 Vision model
-    // Call Groq's Llama 3.2 90B Vision model
+    // Call Groq's active multimodal vision model
     const chatCompletion = await groq.chat.completions.create({
       messages: [
         {
@@ -46,8 +45,8 @@ router.post("/scan", upload.single("image"), async (req, res) => {
           ],
         },
       ],
-      // Swap out the decommissioned 11b model for the active 90b version
-      model: "llama-3.2-90b-vision-preview",
+      // Swap out the decommissioned model for the active Qwen 3.8 27B version
+      model: "qwen-2.5-vl-7b-instruct",
       temperature: 0.1,
       response_format: { type: "json_object" }, 
     });
