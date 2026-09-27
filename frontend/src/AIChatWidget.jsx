@@ -1,105 +1,124 @@
-import React, { useState } from 'react';
-import axios from 'axios';
+import React, { useState, useRef, useEffect } from "react";
+import { MessageSquare, Send, X, Bot, User, Loader2 } from "lucide-react";
+import axios from "axios";
 
-export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://nagrik-nova.onrender.com',
+// Using the verified Vercel environment variable routing
+const api = axios.create({ 
+  baseURL: import.meta.env.VITE_API_URL || 'https://nagrik-nova.onrender.com/api' 
 });
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://nagrik-nova.onrender.com';
-
 export default function AIChatWidget() {
-    const [isOpen, setIsOpen] = useState(false);
-    const [input, setInput] = useState('');
-    const [messages, setMessages] = useState([
-        { role: 'agent', text: 'Hi! I am Nova, the nationwide AI assistant for Nagrik Nova. You can report an issue anywhere in India or ask about existing ones. How can I help?' }
-    ]);
-    const [loading, setLoading] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [messages, setMessages] = useState([
+    { role: "assistant", content: "Hello! I am your Nagrik Nova AI assistant. How can I help you report or understand civic issues today?" }
+  ]);
+  
+  const messagesEndRef = useRef(null);
 
-    const sendMessage = async (e) => {
-        e.preventDefault();
-        if (!input.trim()) return;
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
-        const userMessage = input;
-        setMessages((prev) => [...prev, { role: 'user', text: userMessage }]);
-        setInput('');
-        setLoading(true);
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
-        try {
-            const userStr = localStorage.getItem('user');
-            const userObj = userStr ? JSON.parse(userStr) : null;
-            const response = await axios.post(`${API_URL}/ai/chat`, {
-                message: userMessage,
-                history: messages,
-                userId: userObj ? userObj.id : null
-            });
-            setMessages((prev) => [...prev, { role: 'agent', text: response.data.message }]);
-        } catch (error) {
-            console.error('Chat error:', error);
-            setMessages((prev) => [...prev, { role: 'agent', text: 'Sorry, I lost connection to the server. Please try again.' }]);
-        } finally {
-            setLoading(false);
-        }
-    };
+  const handleSend = async (e) => {
+    e.preventDefault();
+    if (!input.trim()) return;
 
+    const userMessage = { role: "user", content: input };
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
+    setLoading(true);
+
+    try {
+      // Routing through our fixed backend endpoint
+      const response = await api.post("/ai/chat", { message: userMessage.content });
+      setMessages((prev) => [
+        ...prev, 
+        { role: "assistant", content: response.data.reply || response.data.message || "Message received." }
+      ]);
+    } catch (error) {
+      console.error("AI Chat Error:", error);
+      setMessages((prev) => [
+        ...prev, 
+        { role: "assistant", content: "I'm having trouble connecting to the civic intelligence servers right now. Please try again later." }
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) {
     return (
-        <div style={{ position: 'fixed', bottom: '25px', right: '25px', zIndex: 9999, fontFamily: 'inherit' }}>
-            {isOpen ? (
-                /* THE FIX: Added "chat-window" class and removed hardcoded solid backgrounds */
-                <div className="chat-window" style={{ width: '340px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-
-                    <div className="chat-header" style={{ padding: '16px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#182937' }}>
-                        <span>Nova AI Agent</span>
-                        <button onClick={() => setIsOpen(false)} style={{ background: 'none', border: 'none', color: '#182937', cursor: 'pointer', fontSize: '18px' }}>✖</button>
-                    </div>
-
-                    <div style={{ height: '320px', overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', background: 'transparent' }}>
-                        {messages.map((msg, idx) => (
-                            <div key={idx} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
-                                <div style={{
-                                    padding: '10px 14px',
-                                    borderRadius: '12px',
-                                    maxWidth: '85%',
-                                    /* Applying a subtle glass look to the bubbles themselves */
-                                    background: msg.role === 'user' ? 'rgba(47, 116, 94, 0.85)' : 'rgba(255, 255, 255, 0.6)',
-                                    backdropFilter: 'blur(10px)',
-                                    border: '1px solid rgba(255,255,255,0.3)',
-                                    color: msg.role === 'user' ? '#fff' : '#1f2937',
-                                    fontSize: '14px',
-                                    lineHeight: '1.4',
-                                    boxShadow: '0 4px 10px rgba(0,0,0,0.05)'
-                                }}>
-                                    {msg.text}
-                                </div>
-                            </div>
-                        ))}
-                        {loading && <div style={{ fontSize: '13px', color: '#6b7280', fontStyle: 'italic' }}>Nova is thinking...</div>}
-                    </div>
-
-                    <form onSubmit={sendMessage} style={{ padding: '12px', background: 'transparent', borderTop: '1px solid rgba(255, 255, 255, 0.4)', display: 'flex', gap: '8px' }}>
-                        {/* The global CSS will style this input automatically now */}
-                        <input
-                            type="text"
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            placeholder="Type your message..."
-                            style={{ flex: 1, padding: '10px', fontSize: '14px' }}
-                        />
-                        {/* THE FIX: Added "btn" class to make it match the 3D buttons */}
-                        <button type="submit" className="btn small" disabled={loading} style={{ opacity: loading ? 0.7 : 1 }}>
-                            Send
-                        </button>
-                    </form>
-                </div>
-            ) : (
-                /* THE FIX: Added "chat-bubble" class and removed hardcoded solid styles */
-                <button
-                    className="chat-bubble"
-                    onClick={() => setIsOpen(true)}
-                    style={{ padding: '16px 24px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', border: 'none' }}
-                >
-                    💬 Chat with Nova
-                </button>
-            )}
-        </div>
+      <button 
+        onClick={() => setIsOpen(true)}
+        style={{
+          position: "fixed", bottom: "20px", right: "20px",
+          background: "#10b981", color: "white", border: "none",
+          borderRadius: "50%", padding: "16px", cursor: "pointer",
+          boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)", zIndex: 9999
+        }}
+      >
+        <MessageSquare size={24} />
+      </button>
     );
-} 
+  }
+
+  return (
+    <div style={{
+      position: "fixed", bottom: "20px", right: "20px", width: "350px", height: "500px",
+      background: "#1e293b", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.1)",
+      display: "flex", flexDirection: "column", boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+      zIndex: 9999, overflow: "hidden"
+    }}>
+      {/* Header */}
+      <div style={{ background: "#0f172a", padding: "16px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: "bold" }}>
+          <Bot size={20} color="#10b981" /> Nova AI
+        </div>
+        <button onClick={() => setIsOpen(false)} style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer" }}>
+          <X size={20} />
+        </button>
+      </div>
+
+      {/* Chat History */}
+      <div style={{ flex: 1, padding: "16px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "12px" }}>
+        {messages.map((msg, idx) => (
+          <div key={idx} style={{
+            alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
+            background: msg.role === "user" ? "#10b981" : "rgba(255,255,255,0.05)",
+            padding: "10px 14px", borderRadius: "8px", maxWidth: "80%",
+            color: msg.role === "user" ? "white" : "#e2e8f0", fontSize: "14px", lineHeight: "1.5"
+          }}>
+            {msg.content}
+          </div>
+        ))}
+        {loading && (
+          <div style={{ alignSelf: "flex-start", padding: "10px", color: "#94a3b8" }}>
+            <Loader2 size={16} className="animate-spin" />
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input Area */}
+      <form onSubmit={handleSend} style={{ padding: "16px", borderTop: "1px solid rgba(255,255,255,0.1)", display: "flex", gap: "8px", background: "#0f172a" }}>
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Ask about local infrastructure..."
+          style={{ flex: 1, padding: "10px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(0,0,0,0.2)", color: "white" }}
+          disabled={loading}
+        />
+        <button type="submit" disabled={loading || !input.trim()} style={{ background: "#10b981", color: "white", border: "none", borderRadius: "6px", padding: "10px", cursor: "pointer", display: "flex", alignItems: "center" }}>
+          <Send size={18} />
+        </button>
+      </form>
+    </div>
+  );
+}
