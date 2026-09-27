@@ -29,6 +29,57 @@ router.post("/chat", async (req, res) => {
       });
     }
 
+    const express = require('express');
+const router = express.Router();
+const multer = require('multer');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+
+// Hold the uploaded image in memory so Gemini can process it
+const upload = multer({ storage: multer.memoryStorage() });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+router.post('/scan', upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No image file provided." });
+    }
+
+    // gemini-1.5-flash is optimized for fast multimodal tasks like image scanning
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    
+    const imagePart = {
+      inlineData: {
+        data: req.file.buffer.toString("base64"),
+        mimeType: req.file.mimetype
+      }
+    };
+
+    const prompt = `Analyze this image of a civic infrastructure issue. 
+    Respond STRICTLY with a valid JSON object in this exact format, with no markdown formatting or backticks:
+    {
+      "title": "A short, specific title (e.g., Deep Pothole on Main Road)",
+      "description": "A 2-3 sentence detailed description of the visible hazard and its potential impact."
+    }`;
+
+    const result = await model.generateContent([prompt, imagePart]);
+    
+    // Clean up any potential markdown formatting the AI might add
+    const responseText = result.response.text().trim().replace(/```json/g, '').replace(/```/g, '');
+    const parsedData = JSON.parse(responseText);
+
+    res.status(200).json({
+      title: parsedData.title,
+      description: parsedData.description
+    });
+
+  } catch (error) {
+    console.error("Backend Gemini Vision Error:", error);
+    res.status(500).json({ message: "Failed to analyze image with AI." });
+  }
+});
+
+module.exports = router;
+
 
     // =================================================
     // 1. GET RECENT ACTIVE COMPLAINTS
