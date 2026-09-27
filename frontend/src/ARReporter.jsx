@@ -74,12 +74,10 @@ export default function ARReporter({ onLocationSaved }) {
   const [stagedPin, setStagedPin] = useState(null);
   const [inAR, setInAR] = useState(false);
   const [geo, setGeo] = useState(null);
-  const [geoStatus, setGeoStatus] = useState("idle"); // idle | locating | ready | unavailable
+  const [geoStatus, setGeoStatus] = useState("idle");
 
   const [store] = useState(() => createXRStore());
 
-  // As soon as a pin is dropped, request a GPS fix in parallel so it's
-  // (hopefully) ready by the time the user hits Confirm.
   useEffect(() => {
     if (!stagedPin) {
       setGeo(null);
@@ -119,7 +117,6 @@ export default function ARReporter({ onLocationSaved }) {
 
   return (
     <div style={{ width: "100%", height: "400px", position: "relative", borderRadius: "10px", overflow: "hidden", border: "2px solid #333", background: "#111" }}>
-
       {!inAR && (
         <div style={{ padding: "30px", textAlign: "center", color: "white" }}>
           <h3 style={{ margin: "0 0 10px 0" }}>AR Spatial Issue Scanner</h3>
@@ -146,7 +143,6 @@ export default function ARReporter({ onLocationSaved }) {
               display: "flex", flexDirection: "column", justifyContent: "space-between",
               padding: "20px", boxSizing: "border-box", pointerEvents: "none"
             }}>
-
               <div style={{
                 background: "rgba(10, 10, 10, 0.85)", color: "#00e5ff", padding: "12px 20px",
                 borderRadius: "10px", border: "1px solid #00e5ff", textAlign: "center",
@@ -162,18 +158,12 @@ export default function ARReporter({ onLocationSaved }) {
                   : "📍 Ticket anchored (AR-only, no GPS)"}
               </div>
 
-              {/* ONLY CHANGED THIS BLOCK: Show Loader if locating, else show Buttons */}
               {stagedPin && geoStatus === "locating" && (
                 <div style={{ display: "flex", justifyContent: "center", pointerEvents: "auto", marginBottom: "30px" }}>
                   <div style={{
-                    padding: "16px 24px",
-                    background: "rgba(10, 10, 10, 0.85)",
-                    color: "#00e5ff",
-                    borderRadius: "10px",
-                    border: "1px solid #00e5ff",
-                    fontWeight: "bold",
-                    fontSize: "16px",
-                    backdropFilter: "blur(5px)"
+                    padding: "16px 24px", background: "rgba(10, 10, 10, 0.85)", color: "#00e5ff",
+                    borderRadius: "10px", border: "1px solid #00e5ff", fontWeight: "bold",
+                    fontSize: "16px", backdropFilter: "blur(5px)"
                   }}>
                     ⏳ Locking GPS Coordinates...
                   </div>
@@ -198,7 +188,6 @@ export default function ARReporter({ onLocationSaved }) {
                   </button>
                 </div>
               )}
-
             </div>
           </XRDomOverlay>
         </XR>
