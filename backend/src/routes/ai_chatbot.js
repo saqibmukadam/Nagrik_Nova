@@ -35,6 +35,7 @@ router.post("/scan", upload.single("image"), async (req, res) => {
     }`;
 
     // Call Groq's Llama 3.2 Vision model
+    // Call Groq's Llama 3.2 90B Vision model
     const chatCompletion = await groq.chat.completions.create({
       messages: [
         {
@@ -45,7 +46,8 @@ router.post("/scan", upload.single("image"), async (req, res) => {
           ],
         },
       ],
-      model: "llama-3.2-11b-vision-preview",
+      // Swap out the decommissioned 11b model for the active 90b version
+      model: "llama-3.2-90b-vision-preview",
       temperature: 0.1,
       response_format: { type: "json_object" }, 
     });
