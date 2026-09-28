@@ -1,7 +1,6 @@
 import express from "express";
 import supabase from "../supabase.js";
 import Groq from "groq-sdk";
-import multer from "multer";
 
 const router = express.Router();
 
@@ -10,22 +9,18 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
-// Configure multer to hold the uploaded image in memory
-const upload = multer({ storage: multer.memoryStorage() });
-
 // =====================================================
 // 1. SMART SCANNER (GROQ VISION)
 // =====================================================
 
-router.post("/scan", upload.single("image"), async (req, res) => {
+router.post("/scan", async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ message: "No image file provided." });
-    }
+    // Grab the pre-compressed base64 string straight from your React frontend
+    const { imageBase64 } = req.body;
 
-    // Convert the image buffer to a base64 Data URL for the Groq Vision model
-    const base64Image = req.file.buffer.toString("base64");
-    const imageUrl = `data:${req.file.mimetype};base64,${base64Image}`;
+    if (!imageBase64) {
+      return res.status(400).json({ message: "No image data provided." });
+    }
 
     const prompt = `Analyze this image of a civic infrastructure issue. 
     Respond STRICTLY with a valid JSON object in this exact format:
@@ -34,18 +29,18 @@ router.post("/scan", upload.single("image"), async (req, res) => {
       "description": "A 2-3 sentence detailed description of the visible hazard and its potential impact."
     }`;
 
-    // Call Groq's active multimodal vision model
+    // Call Groq's active multimodal vision model (Qwen)
     const chatCompletion = await groq.chat.completions.create({
       messages: [
         {
           role: "user",
           content: [
             { type: "text", text: prompt },
-            { type: "image_url", image_url: { url: imageUrl } },
+            { type: "image_url", image_url: { url: imageBase64 } },
           ],
         },
       ],
-      // Swap out the decommissioned model for the active Qwen 3.8 27B version
+      // Using the active Qwen 2.5 Vision model
       model: "qwen-2.5-vl-7b-instruct",
       temperature: 0.1,
       response_format: { type: "json_object" }, 

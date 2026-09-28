@@ -62,7 +62,7 @@ const useAuth = () => {
     localStorage.clear();
     setUser(null);
   };
-  return { user, signIn,updateUser, out };
+  return { user, signIn, updateUser, out };
 };
 function App() {
   const auth = useAuth();
@@ -86,13 +86,13 @@ function App() {
           />
 
           <Route
-  path="/rewards"
-  element={
-    <Require user={auth.user}>
-      <Rewards user={auth.user} />
-    </Require>
-  }
-/>
+            path="/rewards"
+            element={
+              <Require user={auth.user}>
+                <Rewards user={auth.user} />
+              </Require>
+            }
+          />
           <Route
             path="/issues/:id"
             element={
@@ -100,7 +100,8 @@ function App() {
                 <Detail user={auth.user} />
               </Require>
             }
-          /><Route
+          />
+          <Route
             path="/citizen-map"
             element={
               <Require user={auth.user}>
@@ -602,8 +603,10 @@ function Dashboard({ user }) {
     [voiceResetKey, setVoiceResetKey] = useState(0),
     [msg, setMsg] = useState(""),
     [err, setErr] = useState("");
+  const [imagePreview, setImagePreview] = useState(null);
+  const [isScanning, setIsScanning] = useState(false);
+
   useEffect(() => {
-    // FIX: Wrapped in curly braces so it doesn't return a Promise
     api
       .get("/issues")
       .then((r) =>
@@ -612,6 +615,66 @@ function Dashboard({ user }) {
         ),
       );
   }, [user.id]);
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+
+        const MAX_WIDTH = 1200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > MAX_WIDTH) {
+          height = Math.round((height * MAX_WIDTH) / width);
+          width = MAX_WIDTH;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const compressedBase64 = canvas.toDataURL("image/jpeg", 0.7);
+
+        setImagePreview(compressedBase64);
+      };
+    };
+  };
+
+  const runAIVision = async (e) => {
+    e.preventDefault();
+    if (!imagePreview) return;
+
+    setIsScanning(true);
+
+    try {
+      const response = await api.post("/ai/scan", { imageBase64: imagePreview });
+
+      setData({
+        ...data,
+        title: response.data.title || data.title,
+        description: response.data.description || data.description
+      });
+
+    } catch (error) {
+      console.error("Vision API Error:", error);
+      alert("Nova AI couldn't process this image right now. Please enter the details manually.");
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
   const post = async (e) => {
     e.preventDefault();
     setErr("");
@@ -662,7 +725,41 @@ function Dashboard({ user }) {
             Be specific. Your details help partners understand where action is
             needed.
           </p>
-          <IssueScanner data={data} setData={setData} />
+
+          <label>
+            Attach a photo (Optional)
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              style={{ padding: '8px', background: 'rgba(255,255,255,0.1)', border: '1px dashed #ccc' }}
+            />
+          </label>
+
+          {imagePreview && (
+            <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '8px' }}>
+              <img src={imagePreview} alt="Preview" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', display: 'block' }} />
+
+              {isScanning && (
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(47, 116, 94, 0.4)', backdropFilter: 'blur(4px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'white', zIndex: 10 }}>
+                  <LoaderCircle className="spin" size={30} style={{ marginBottom: '10px' }} />
+                  <strong>Nova AI is scanning...</strong>
+                </div>
+              )}
+            </div>
+          )}
+
+          {imagePreview && !isScanning && !data.title && (
+            <button
+              onClick={runAIVision}
+              type="button"
+              className="btn full"
+              style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', border: '1px solid #10b981' }}
+            >
+              <Sparkles size={16} /> Auto-Fill using Nova AI
+            </button>
+          )}
+
           <VoiceInput
             key={voiceResetKey}
             data={data}
