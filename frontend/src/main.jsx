@@ -33,6 +33,7 @@ import {
   Sparkles,
   Users,
   X,
+  Camera
 } from "lucide-react";
 import "./styles.css";
 import CitizenMap from "./CitizenMap.jsx";
@@ -726,15 +727,30 @@ function Dashboard({ user }) {
             needed.
           </p>
 
-          <label>
-            Attach a photo (Optional)
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              style={{ padding: '8px', background: 'rgba(255,255,255,0.1)', border: '1px dashed #ccc' }}
-            />
-          </label>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <label className="btn" style={{ flex: 1, cursor: 'pointer', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid #10b981', display: 'flex', justifyContent: 'center', margin: 0 }}>
+              <Camera size={18} style={{ marginRight: '8px' }} /> 
+              Snap Live Photo
+              {/* capture="environment" forces the rear camera to open on mobile devices! */}
+              <input 
+                type="file" 
+                accept="image/*" 
+                capture="environment" 
+                onChange={handleImageUpload} 
+                style={{ display: 'none' }} 
+              />
+            </label>
+
+            <label className="btn" style={{ flex: 1, cursor: 'pointer', background: 'rgba(255, 255, 255, 0.05)', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', justifyContent: 'center', margin: 0 }}>
+              Upload Image
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleImageUpload} 
+                style={{ display: 'none' }} 
+              />
+            </label>
+          </div>
 
           {imagePreview && (
             <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '8px' }}>
