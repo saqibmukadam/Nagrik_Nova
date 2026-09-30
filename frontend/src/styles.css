@@ -1270,18 +1270,33 @@ header nav {
   }
 
   /* ========================================================= */
-/* 🌍 GOOGLE TRANSLATE ENGINE OVERRIDES                      */
+/* 🌍 GOOGLE TRANSLATE BANNER KILLER                         */
 /* ========================================================= */
-/* Hide the Google Translate widget and top banner */
-.goog-te-banner-frame.skiptranslate { display: none !important; }
-#google_translate_element { display: none !important; }
-body { top: 0px !important; }
 
-/* Disable the hover tooltips and text highlights */
-.goog-tooltip { display: none !important; }
-.goog-tooltip:hover { display: none !important; }
-.goog-text-highlight { 
-  background-color: transparent !important; 
-  border: none !important; 
-  box-shadow: none !important; 
+/* 1. Hide the top iframe banner completely */
+iframe.goog-te-banner-frame {
+  display: none !important;
+}
+
+/* 2. Reset the 40px gap Google forces at the top of the page */
+body {
+  top: 0px !important; 
+}
+
+/* 3. Hide the translation popup box when hovering over text */
+#goog-gt-tt, 
+.goog-te-balloon-frame, 
+.goog-tooltip, 
+.goog-tooltip:hover {
+  display: none !important;
+}
+
+/* 4. Remove the background color highlight on translated text */
+font {
+  background: transparent !important;
+}
+.goog-text-highlight {
+  background: none !important;
+  box-shadow: none !important;
+  border: none !important;
 }
