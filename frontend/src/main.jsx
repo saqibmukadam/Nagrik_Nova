@@ -707,10 +707,12 @@ function Issues() {
   );
 }
 
+// THE FIX: Updated IssueCard with image and edge-to-edge padding fixes
 function IssueCard({ issue }) {
   return (
     <Link to={`/issues/${issue.id}`} className="issue" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-      {/* SHOW IMAGE IF IT EXISTS */}
+      
+      {/* RENDER IMAGE IF PRESENT */}
       {issue.image_url && (
         <img 
           src={issue.image_url} 
@@ -719,7 +721,7 @@ function IssueCard({ issue }) {
         />
       )}
       
-      <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+      <div style={{ padding: '21px', display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
         <div className="issue-meta">
           <span className="role">{issue.submitter_role}</span>
           {issue.analyzed ? (
@@ -837,7 +839,7 @@ function Dashboard({ user, auth }) {
     setMsg("");
 
     try {
-      // INCLUDE IMAGE IN PAYLOAD
+      // THE FIX: ADD IMAGE PREVIEW TO PAYLOAD
       const payload = {
         ...data,
         image_url: imagePreview
@@ -856,7 +858,8 @@ function Dashboard({ user, auth }) {
         street: "",
       });
       
-      setImagePreview(null); // CLEAR IMAGE PREVIEW AFTER SUCCESS
+      // CLEAR IMAGE ON SUCCESS
+      setImagePreview(null);
 
       if (r.data.new_coins) {
         auth.updateUser({ ...user, nova_coins: r.data.new_coins });
@@ -868,6 +871,7 @@ function Dashboard({ user, auth }) {
       setVoiceResetKey((prev) => prev + 1);
     } catch (e) {
       const resData = e.response?.data;
+      
       if (e.response?.status === 403 || resData?.isBanned) {
         auth.updateUser({ ...user, is_banned: true, strikes: 3 });
       } else if (resData?.strikes) {
@@ -990,7 +994,6 @@ function Dashboard({ user, auth }) {
             />
           </label>
 
-          {/* THE FIX: STATE & CITY DATALISTS */}
           <div className="two">
             <label style={{ position: 'relative', display: 'block' }}>
               State
@@ -1128,6 +1131,7 @@ function IssueTracker({ issue }) {
   );
 }
 
+// THE FIX: Issue detail page also displays the image perfectly
 function Detail({ user }) {
   const { id } = useParams(),
     [issue, setIssue] = useState(null),
@@ -1283,7 +1287,7 @@ function Detail({ user }) {
         )}
       </div>
 
-      {/* ADD THIS RIGHT BEFORE THE ISSUE TRACKER */}
+      {/* RENDER IMAGE BEFORE TRACKER */}
       {issue.image_url && (
         <div style={{ width: '100%', maxHeight: '450px', borderRadius: '16px', overflow: 'hidden', marginBottom: '30px', border: '1px solid rgba(255,255,255,0.1)' }}>
           <img src={issue.image_url} alt="Evidence" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
