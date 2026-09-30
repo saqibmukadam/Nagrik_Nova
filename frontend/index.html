@@ -5,24 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Nagrik Nova</title>
     
-    <!-- 🌍 ULTIMATE GOOGLE TRANSLATE BANNER KILLER -->
+    <!-- 🌍 GOOGLE TRANSLATE CSS OVERRIDES -->
     <style>
-      /* Hide the iframe banner */
       .goog-te-banner-frame.skiptranslate, 
-      .goog-te-banner-frame { 
+      .goog-te-banner-frame,
+      .VIpgJd-Zvi9od-aZ2wEe-wOHMyf,
+      .VIpgJd-Zvi9od-aZ2wEe-wOHMyf-ti6hGc { 
         display: none !important; 
+        opacity: 0 !important;
+        visibility: hidden !important;
+        height: 0 !important;
       }
-      /* Force body and HTML back to the top */
       html, body { 
         top: 0px !important; 
         position: static !important; 
       }
-      /* Hide hover tooltips */
-      #goog-gt-tt, 
-      .goog-te-balloon-frame { 
+      #goog-gt-tt, .goog-te-balloon-frame { 
         display: none !important; 
       }
-      /* Remove highlight colors */
       .goog-text-highlight { 
         background: none !important; 
         box-shadow: none !important; 
@@ -46,16 +46,30 @@
     </script>
     <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
     
-    <!-- JavaScript fallback to strip the 40px gap if Google sneaks it in -->
+    <!-- 🛑 THE TERMINATOR SCRIPT: Instantly deletes the banner from the DOM -->
     <script>
-      setInterval(function() {
-        if (document.body && document.body.style.top === '40px') {
-          document.body.style.top = '0px';
+      const observer = new MutationObserver(() => {
+        // Find Google's injected banner elements and completely remove them
+        const banners = document.querySelectorAll('.goog-te-banner-frame, .VIpgJd-Zvi9od-aZ2wEe-wOHMyf');
+        banners.forEach(banner => banner.remove());
+        
+        // Strip the forced 40px gap from the body/html
+        if (document.body && document.body.style.top !== '0px') {
+          document.body.style.setProperty('top', '0px', 'important');
+          document.body.style.setProperty('position', 'static', 'important');
         }
-        if (document.documentElement && document.documentElement.style.top === '40px') {
-          document.documentElement.style.top = '0px';
+        if (document.documentElement && document.documentElement.style.top !== '0px') {
+          document.documentElement.style.setProperty('top', '0px', 'important');
         }
-      }, 500);
+      });
+      
+      // Watch the entire document for Google's sneaky injections
+      observer.observe(document.documentElement, { 
+        childList: true, 
+        subtree: true, 
+        attributes: true, 
+        attributeFilter: ['style'] 
+      });
     </script>
   </body>
 </html>
