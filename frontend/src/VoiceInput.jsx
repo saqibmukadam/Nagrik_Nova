@@ -116,30 +116,50 @@ export default function VoiceInput({ data, setData }) {
 
       {!started && (
         <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <Globe2 size={16} color="#94a3b8" />
-            <span style={{ color: "#94a3b8", fontSize: "14px" }}>Select Language / भाषा चुनें</span>
+          {/* THE FIX: High Contrast Subtitle */}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", margin: "10px 0" }}>
+            <Globe2 size={16} color="#e2e8f0" />
+            <span style={{ color: "#e2e8f0", fontSize: "14px", fontWeight: "600" }}>Select Language / भाषा चुनें</span>
           </div>
           
           <div style={{ display: "flex", gap: "10px" }}>
+            {/* THE FIX: High Contrast Active State for English */}
             <button
               type="button"
               onClick={() => setLanguage("en")}
               style={{
-                flex: 1, padding: "12px", borderRadius: "8px", border: language === "en" ? "1px solid #10b981" : "1px solid rgba(255,255,255,0.1)",
-                background: language === "en" ? "rgba(16, 185, 129, 0.1)" : "transparent", color: language === "en" ? "#10b981" : "white",
-                cursor: "pointer", fontWeight: "bold"
+                flex: 1,
+                padding: "10px 16px",
+                borderRadius: "8px",
+                fontWeight: "700",
+                fontSize: "15px",
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+                background: language === "en" ? "#10b981" : "rgba(255, 255, 255, 0.08)",
+                color: "#ffffff",
+                border: language === "en" ? "1px solid #10b981" : "1px solid rgba(255, 255, 255, 0.2)",
+                boxShadow: language === "en" ? "0 4px 12px rgba(16, 185, 129, 0.3)" : "none"
               }}
             >
               English
             </button>
+
+            {/* THE FIX: High Contrast Active State for Hindi */}
             <button
               type="button"
               onClick={() => setLanguage("hi")}
               style={{
-                flex: 1, padding: "12px", borderRadius: "8px", border: language === "hi" ? "1px solid #10b981" : "1px solid rgba(255,255,255,0.1)",
-                background: language === "hi" ? "rgba(16, 185, 129, 0.1)" : "transparent", color: language === "hi" ? "#10b981" : "white",
-                cursor: "pointer", fontWeight: "bold"
+                flex: 1,
+                padding: "10px 16px",
+                borderRadius: "8px",
+                fontWeight: "700",
+                fontSize: "15px",
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+                background: language === "hi" ? "#10b981" : "rgba(255, 255, 255, 0.08)",
+                color: "#ffffff",
+                border: language === "hi" ? "1px solid #10b981" : "1px solid rgba(255, 255, 255, 0.2)",
+                boxShadow: language === "hi" ? "0 4px 12px rgba(16, 185, 129, 0.3)" : "none"
               }}
             >
               हिंदी
