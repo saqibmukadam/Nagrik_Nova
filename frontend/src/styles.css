@@ -1268,3 +1268,20 @@ header nav {
     bottom: 160px !important;
     max-height: calc(100vh - 250px) !important;
   }
+
+  /* ========================================================= */
+/* 🌍 GOOGLE TRANSLATE ENGINE OVERRIDES                      */
+/* ========================================================= */
+/* Hide the Google Translate widget and top banner */
+.goog-te-banner-frame.skiptranslate { display: none !important; }
+#google_translate_element { display: none !important; }
+body { top: 0px !important; }
+
+/* Disable the hover tooltips and text highlights */
+.goog-tooltip { display: none !important; }
+.goog-tooltip:hover { display: none !important; }
+.goog-text-highlight { 
+  background-color: transparent !important; 
+  border: none !important; 
+  box-shadow: none !important; 
+}

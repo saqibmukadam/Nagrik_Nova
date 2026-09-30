@@ -61,10 +61,25 @@ export default function AccountSettings({ user, auth }) {
   const handleLanguageChange = (code) => {
     setLang(code);
     localStorage.setItem('nn-language', code);
-    setLangMsg('Interface language updated! Changes will apply globally shortly.');
-    setTimeout(() => setLangMsg(''), 4000);
-  };
 
+    // Tell Google Translate Engine to switch languages via cookies
+    if (code === 'en') {
+      // Clear translation for English
+      document.cookie = "googtrans=/en/en; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      document.cookie = `googtrans=/en/en; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=${window.location.hostname}; path=/;`;
+    } else {
+      // Set target language
+      document.cookie = `googtrans=/en/${code}; path=/;`;
+      document.cookie = `googtrans=/en/${code}; domain=${window.location.hostname}; path=/;`;
+    }
+
+    setLangMsg('Interface language updated! Applying translation...');
+
+    // Refresh the page so the translation engine kicks in
+    setTimeout(() => {
+      window.location.reload();
+    }, 800);
+  };
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
