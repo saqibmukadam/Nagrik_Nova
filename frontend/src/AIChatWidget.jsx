@@ -25,7 +25,7 @@ export default function AIChatWidget() {
         setLoading(true);
 
         try {
-            const userStr = localStorage.getItem('user');
+            const userStr = localStorage.getItem('nn-user');
             const userObj = userStr ? JSON.parse(userStr) : null;
             const response = await axios.post(`${API_URL}/ai/chat`, {
                 message: userMessage,
@@ -42,14 +42,14 @@ export default function AIChatWidget() {
     };
 
     return (
-        /* THE FIX: Added className="chat-widget" so the mobile CSS can grab it and push it up */
         <div className="chat-widget" style={{ position: 'fixed', bottom: '25px', right: '25px', zIndex: 9999, fontFamily: 'inherit' }}>
             {isOpen ? (
                 <div className="chat-window" style={{ width: '340px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
-                    <div className="chat-header" style={{ padding: '16px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#182937' }}>
+                    {/* THE FIX: Replaced hardcoded #182937 with dynamic var(--ink) and inherit */}
+                    <div className="chat-header" style={{ padding: '16px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--ink)' }}>
                         <span>Nova AI Agent</span>
-                        <button onClick={() => setIsOpen(false)} style={{ background: 'none', border: 'none', color: '#182937', cursor: 'pointer', fontSize: '18px' }}>✖</button>
+                        <button onClick={() => setIsOpen(false)} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: '18px' }}>✖</button>
                     </div>
 
                     <div style={{ height: '320px', overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', background: 'transparent' }}>
