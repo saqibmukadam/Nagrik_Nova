@@ -1270,33 +1270,41 @@ header nav {
   }
 
   /* ========================================================= */
-/* 🌍 GOOGLE TRANSLATE BANNER KILLER                         */
+/* ☢️ THE NUCLEAR GOOGLE TRANSLATE BANNER KILLER             */
 /* ========================================================= */
 
-/* 1. Hide the top iframe banner completely */
-iframe.goog-te-banner-frame {
+/* 1. Target the Google iframe directly by its URL and force it off-screen */
+iframe[src*="translate.googleapis.com"],
+iframe[id=":1.container"],
+.goog-te-banner-frame {
   display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  position: absolute !important;
+  top: -9999px !important;
+  left: -9999px !important;
+  z-index: -999 !important;
 }
 
-/* 2. Reset the 40px gap Google forces at the top of the page */
+/* 2. Force the body back to the top of the screen */
 body {
-  top: 0px !important; 
+  top: 0px !important;
+  position: relative !important;
 }
 
-/* 3. Hide the translation popup box when hovering over text */
-#goog-gt-tt, 
-.goog-te-balloon-frame, 
-.goog-tooltip, 
-.goog-tooltip:hover {
+/* 3. Hide the hover tooltip box completely */
+#goog-gt-tt,
+.goog-te-balloon-frame {
   display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
 }
 
-/* 4. Remove the background color highlight on translated text */
-font {
-  background: transparent !important;
-}
+/* 4. Strip out the yellow background highlight from translated text */
 .goog-text-highlight {
-  background: none !important;
-  box-shadow: none !important;
+  background-color: transparent !important;
   border: none !important;
+  box-shadow: none !important;
 }
