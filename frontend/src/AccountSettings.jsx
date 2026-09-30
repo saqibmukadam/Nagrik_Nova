@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { User, Lock, Trash2, Save, ArrowLeft, ShieldAlert, Pencil, X, Globe, Sparkles, Shield, Moon, Sun } from "lucide-react";
+import { User, Lock, Trash2, Save, ArrowLeft, ShieldAlert, Pencil, X, Globe, Sparkles, Shield, Moon, Sun, Eye, EyeOff } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { DarkModeToggle } from "./main"; // Assuming this is exported from main.jsx
+import { DarkModeToggle } from "./main"; 
 
 const api = axios.create({ baseURL: 'https://nagrik-nova.onrender.com/api' });
 api.interceptors.request.use((c) => {
@@ -161,7 +161,7 @@ export default function AccountSettings({ user, auth }) {
         {/* LEFT COLUMN: Settings Panels */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '30px', width: '100%' }}>
           
-          {/* NEW: Display & Accessibility Settings */}
+          {/* Display & Accessibility Settings */}
           <div className="issue" style={{ padding: '30px', minHeight: 'auto' }}>
             <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '20px', margin: '0 0 15px 0' }}>
               <Globe size={20} color="#10b981" /> Display & Language
@@ -302,7 +302,7 @@ export default function AccountSettings({ user, auth }) {
                   onClick={() => setShowPass(!showPass)}
                   style={{ position: 'absolute', right: '12px', bottom: '12px', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}
                 >
-                  {showPass ? <X size={18} /> : <EyeOff size={18} />} 
+                  {showPass ? <EyeOff size={18} /> : <Eye size={18} />} 
                 </button>
               </label>
               
