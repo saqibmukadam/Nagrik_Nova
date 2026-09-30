@@ -7,6 +7,8 @@ import IssueScanner from "./IssueScanner.jsx";
 import { createRoot } from "react-dom/client";
 import Rewards from "./Rewards";
 import AccountSettings from "./AccountSettings.jsx";
+import { NotFound, ServerError, SessionExpiredModal } from './UXStates';
+import { PrivacyPolicy, TermsOfService, CommunityGuidelines } from "./Legal";
 import {
   BrowserRouter,
   Link,
@@ -33,17 +35,39 @@ import {
   Sparkles,
   Users,
   X,
-  Camera
+  Camera,
+  Moon, 
+  Sun,
+  HandHeart,
+  ThumbsUp,
+  ClipboardList,
+  Wrench,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import "./styles.css";
 import CitizenMap from "./CitizenMap.jsx";
 import Footer from "./Footer";
+
 export const api = axios.create({ baseURL: import.meta.env.VITE_API_URL });
+
 api.interceptors.request.use((c) => {
   const t = localStorage.getItem("nn-token");
   if (t) c.headers.Authorization = `Bearer ${t}`;
   return c;
 });
+
+// Broadcast a global event when the backend rejects the token
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      window.dispatchEvent(new Event("session-expired"));
+    }
+    return Promise.reject(error);
+  }
+);
+
 const useAuth = () => {
   const [user, setUser] = useState(() =>
     JSON.parse(localStorage.getItem("nn-user") || "null"),
@@ -59,75 +83,112 @@ const useAuth = () => {
     localStorage.setItem("nn-user", JSON.stringify(d.user));
     setUser(d.user);
   };
+  
   const out = () => {
-    localStorage.clear();
+    localStorage.removeItem("nn-token");
+    localStorage.removeItem("nn-user");
     setUser(null);
   };
   return { user, signIn, updateUser, out };
 };
+
+export function DarkModeToggle() {
+  const [isDark, setIsDark] = useState(() => {
+    return localStorage.getItem('nn-dark-mode') === 'true';
+  });
+
+  useEffect(() => {
+    if (isDark) {
+      document.body.classList.add('dark-mode');
+      localStorage.setItem('nn-dark-mode', 'true');
+    } else {
+      document.body.classList.remove('dark-mode');
+      localStorage.setItem('nn-dark-mode', 'false');
+    }
+  }, [isDark]);
+
+  return (
+    <button 
+      onClick={() => setIsDark(!isDark)}
+      className="btn small"
+      style={{ 
+        background: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(24, 41, 55, 0.85)',
+        padding: '10px 14px',
+        color: '#fff'
+      }}
+      title="Toggle Dark Mode"
+    >
+      {isDark ? <Sun size={18} /> : <Moon size={18} />}
+    </button>
+  );
+}
+
+function CursorCompanion() {
+  const companionRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const moveCompanion = (e) => {
+      if (companionRef.current) {
+        companionRef.current.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`;
+      }
+    };
+    window.addEventListener('mousemove', moveCompanion);
+    return () => window.removeEventListener('mousemove', moveCompanion);
+  }, []);
+
+  return (
+    <div ref={companionRef} className="cursor-companion">
+      <Leaf size={18} strokeWidth={2.5} />
+    </div>
+  );
+}
+
 function App() {
   const auth = useAuth();
+  const nav = useNavigate();
   const { user } = auth;
+  const [showExpired, setShowExpired] = useState(false);
+
+  useEffect(() => {
+    const handleExpired = () => {
+      auth.out(); 
+      setShowExpired(true);
+    };
+    window.addEventListener("session-expired", handleExpired);
+    return () => window.removeEventListener("session-expired", handleExpired);
+  }, [auth]);
+
   return (
     <>
+      {showExpired && (
+        <SessionExpiredModal onLoginClick={() => {
+          setShowExpired(false);
+          nav("/login");
+        }} />
+      )}
+      
+      <CursorCompanion />
       <Nav auth={auth} />
+      
       <main>
         <Routes>
           <Route path="/" element={<Home user={auth.user} />} />
           <Route path="/vr-map" element={<Require user={auth.user}><VRCommandCenter /></Require>} />
           <Route path="/login" element={<Login auth={auth} />} />
           <Route path="/register" element={<Register auth={auth} />} />
-          <Route
-            path="/issues"
-            element={
-              <Require user={auth.user}>
-                <Issues />
-              </Require>
-            }
-          />
-
-          <Route
-            path="/rewards"
-            element={
-              <Require user={auth.user}>
-                <Rewards user={auth.user} />
-              </Require>
-            }
-          />
-          <Route
-            path="/issues/:id"
-            element={
-              <Require user={auth.user}>
-                <Detail user={auth.user} />
-              </Require>
-            }
-          />
-          <Route
-            path="/citizen-map"
-            element={
-              <Require user={auth.user}>
-                <CitizenMap />
-              </Require>
-            }
-          />
-
-          <Route
-            path="/dashboard"
-            element={
-              <Require user={auth.user}>
-                <Dashboard user={auth.user} />
-              </Require>
-            }
-          />
-
-          <Route
-            path="/settings"
-            element={
-              <Require user={auth.user}>
-                <AccountSettings user={auth.user} auth={auth} />
-              </Require>
-            }
-          />
+          
+          <Route path="/issues" element={<Require user={auth.user}><Issues /></Require>} />
+          <Route path="/rewards" element={<Require user={auth.user}><Rewards user={auth.user} /></Require>} />
+          <Route path="/issues/:id" element={<Require user={auth.user}><Detail user={auth.user} /></Require>} />
+          <Route path="/citizen-map" element={<Require user={auth.user}><CitizenMap /></Require>} />
+          <Route path="/dashboard" element={<Require user={auth.user}><Dashboard user={auth.user} /></Require>} />
+          <Route path="/settings" element={<Require user={auth.user}><AccountSettings user={auth.user} auth={auth} /></Require>} />
+          
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/guidelines" element={<CommunityGuidelines />} />
+          <Route path="/500" element={<ServerError />} />
+          <Route path="*" element={<NotFound />} />
 
           <Route
             path="/admin"
@@ -142,9 +203,7 @@ function App() {
             path="/organization"
             element={
               user &&
-                ["university", "industry", "ngo"].includes(
-                  user.role
-                ) ? (
+                ["university", "industry", "ngo"].includes(user.role) ? (
                 <OrganizationDashboard user={user} />
               ) : (
                 <Navigate to="/login" replace />
@@ -155,19 +214,23 @@ function App() {
       </main>
 
       <AIChatWidget />
-
       <Footer />
     </>
   );
 }
+
 function Require({ user, children }) {
   return user ? children : <Navigate to="/login" replace />;
 }
+
 function Nav({ auth }) {
   const [open, setOpen] = useState(false);
+  
+  const closeMenu = () => setOpen(false);
+
   return (
     <header>
-      <Link className="brand" to="/">
+      <Link className="brand" to="/" onClick={closeMenu}>
         <span className="brand-mark">
           <Leaf size={20} />
         </span>
@@ -179,33 +242,34 @@ function Nav({ auth }) {
         {open ? <X /> : <Menu />}
       </button>
       <nav className={open ? "show" : ""}>
-        <NavLink to="/issues">Explore issues</NavLink>
-        <NavLink to="/citizen-map">Live Map</NavLink>
-        <NavLink to="/rewards">Rewards</NavLink>
+        <NavLink to="/issues" onClick={closeMenu}>Explore issues</NavLink>
+        <NavLink to="/citizen-map" onClick={closeMenu}>Live Map</NavLink>
+        <NavLink to="/rewards" onClick={closeMenu}>Rewards</NavLink>
+        
         {auth.user && ["citizen", "ngo"].includes(auth.user.role) && (
-          <NavLink to="/dashboard">My dashboard</NavLink>
+          <NavLink to="/dashboard" onClick={closeMenu}>My dashboard</NavLink>
         )}
 
         {auth.user &&
-          ["university", "industry", "ngo"].includes(
-            auth.user.role
-          ) && (
-            <NavLink to="/organization">
+          ["university", "industry", "ngo"].includes(auth.user.role) && (
+            <NavLink to="/organization" onClick={closeMenu}>
               My Challenges
             </NavLink>
           )}
+          
         {auth.user && auth.user.role === "admin" && (
           <>
-            <NavLink to="/admin">Admin</NavLink>
-
-            <NavLink to="/vr-map" className="vr-link">
+            <NavLink to="/admin" onClick={closeMenu}>Admin</NavLink>
+            <NavLink to="/vr-map" className="vr-link" onClick={closeMenu}>
               <Sparkles size={15} /> VR Command Center
             </NavLink>
           </>
-
         )}
+        
+        <DarkModeToggle />
+        
         {auth.user ? (
-          <>
+          <div className="nav-user" style={{ display: "flex", alignItems: "center", gap: "15px" }}>
             <span className="user-dot">
               {auth.user.name
                 .split(" ")
@@ -213,26 +277,27 @@ function Nav({ auth }) {
                 .slice(0, 2)}
             </span>
 
-            <NavLink to="/settings">
-              Settings
-            </NavLink>
+            <Link to="/settings" className="text-btn" onClick={closeMenu} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <Wrench size={14} /> Settings
+            </Link>
 
-            <button className="text-btn" onClick={auth.out}>
+            <button className="text-btn" onClick={() => { auth.out(); closeMenu(); }}>
               Sign out
             </button>
-          </>
+          </div>
         ) : (
-          <>
-            <Link to="/login">Sign in</Link>
-            <Link className="btn small" to="/register">
+          <div className="nav-auth" style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+            <Link to="/login" onClick={closeMenu}>Sign in</Link>
+            <Link className="btn small" to="/register" onClick={closeMenu}>
               Join the network <ArrowRight size={15} />
             </Link>
-          </>
+          </div>
         )}
       </nav>
     </header>
   );
 }
+
 function Home({ user }) {
   return (
     <>
@@ -334,6 +399,7 @@ function Home({ user }) {
     </>
   );
 }
+
 function Step(p) {
   return (
     <article className="step">
@@ -346,6 +412,7 @@ function Step(p) {
     </article>
   );
 }
+
 function AuthShell({ title, sub, children }) {
   return (
     <section className="auth-shell">
@@ -373,10 +440,12 @@ function AuthShell({ title, sub, children }) {
     </section>
   );
 }
+
 function Login({ auth }) {
   const nav = useNavigate(),
     [data, setData] = useState({ email: "", password: "" }),
     [err, setErr] = useState("");
+    
   const go = async (e) => {
     e.preventDefault();
     try {
@@ -386,6 +455,7 @@ function Login({ auth }) {
       setErr(e.response?.data?.message || "Could not sign in.");
     }
   };
+  
   return (
     <AuthShell
       title="Welcome back"
@@ -415,6 +485,7 @@ function Login({ auth }) {
     </AuthShell>
   );
 }
+
 const roleFields = {
   ngo: [
     ["areaOfWork", "Area of work"],
@@ -434,11 +505,14 @@ const roleFields = {
     ["interestedDomains", "Interested domains (comma-separated)"],
   ],
 };
+
 function Register({ auth }) {
   const nav = useNavigate(),
     [d, setD] = useState({ role: "citizen" }),
     [err, setErr] = useState("");
+    
   const set = (k, v) => setD({ ...d, [k]: v });
+  
   const submit = async (e) => {
     e.preventDefault();
     try {
@@ -448,6 +522,7 @@ function Register({ auth }) {
       setErr(e.response?.data?.message || "Could not create account.");
     }
   };
+  
   return (
     <AuthShell
       title="Join Nagrik Nova"
@@ -515,23 +590,45 @@ function Register({ auth }) {
     </AuthShell>
   );
 }
-function Field({ label, ...props }) {
+
+function Field({ label, type = "text", ...props }) {
+  const [show, setShow] = useState(false);
+  const isPassword = type === "password";
+  
   return (
-    <label>
+    <label style={{ position: 'relative', display: 'block' }}>
       {label}
-      <input required {...props} />
+      <input 
+        required 
+        type={isPassword ? (show ? "text" : "password") : type} 
+        {...props} 
+        style={{ paddingRight: isPassword ? '40px' : '15px', width: '100%' }} 
+      />
+      {isPassword && (
+        <button
+          type="button" 
+          onClick={() => setShow(!show)}
+          style={{ position: 'absolute', right: '12px', bottom: '12px', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}
+          title={show ? "Hide password" : "Show password"}
+        >
+          {show ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
+      )}
     </label>
   );
 }
+
 function Issues() {
   const [items, setItems] = useState([]),
     [loading, setLoading] = useState(true);
+    
   useEffect(() => {
     api
       .get("/issues")
       .then((r) => setItems(r.data))
       .finally(() => setLoading(false));
   }, []);
+  
   return (
     <section className="page">
       <div className="page-head">
@@ -564,6 +661,7 @@ function Issues() {
     </section>
   );
 }
+
 function IssueCard({ issue }) {
   return (
     <Link to={`/issues/${issue.id}`} className="issue">
@@ -591,6 +689,7 @@ function IssueCard({ issue }) {
     </Link>
   );
 }
+
 function Dashboard({ user }) {
   const nav = useNavigate(),
     [issues, setIssues] = useState([]),
@@ -604,6 +703,7 @@ function Dashboard({ user }) {
     [voiceResetKey, setVoiceResetKey] = useState(0),
     [msg, setMsg] = useState(""),
     [err, setErr] = useState("");
+    
   const [imagePreview, setImagePreview] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
 
@@ -702,7 +802,9 @@ function Dashboard({ user }) {
       );
     }
   };
+  
   if (!["citizen", "ngo"].includes(user.role)) return <Navigate to="/issues" />;
+  
   return (
     <section className="page dashboard">
       <div className="page-head">
@@ -731,7 +833,6 @@ function Dashboard({ user }) {
             <label className="btn" style={{ flex: 1, cursor: 'pointer', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid #10b981', display: 'flex', justifyContent: 'center', margin: 0 }}>
               <Camera size={18} style={{ marginRight: '8px' }} /> 
               Snap Live Photo
-              {/* capture="environment" forces the rear camera to open on mobile devices! */}
               <input 
                 type="file" 
                 accept="image/*" 
@@ -781,11 +882,13 @@ function Dashboard({ user }) {
             data={data}
             setData={setData}
           />
+          
           <Field
             label="A clear title"
             value={data.title}
             onChange={(e) => setData({ ...data, title: e.target.value })}
           />
+          
           <label>
             What is happening?
             <textarea
@@ -829,21 +932,22 @@ function Dashboard({ user }) {
           <label>Capture exact spatial location (Optional)</label>
           <ARReporter
             onLocationSaved={(coords) => {
-              // If we successfully grabbed GPS, use that! Otherwise, fallback to the AR coordinates.
               const finalLocation = coords.lat && coords.lng
                 ? `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`
                 : `AR Spatial: [${coords.x.toFixed(2)}, ${coords.z.toFixed(2)}]`;
 
-              // Update your form data state
               setData({ ...data, street: finalLocation });
             }}
           />
+          
           {msg && <div className="success">{msg}</div>}
           {err && <div className="error">{err}</div>}
+          
           <button className="btn full">
             Submit to the network <ArrowRight size={17} />
           </button>
         </form>
+        
         <aside className="my-issues">
           <h2>
             Your reports <span>{issues.length}</span>
@@ -860,19 +964,63 @@ function Dashboard({ user }) {
     </section>
   );
 }
+
+function IssueTracker({ issue }) {
+  let currentStep = 1;
+  if (issue.analyzed) currentStep = 2;
+  if (issue.analyzed && issue.matches?.length > 0) currentStep = 3;
+  if (issue.status === "in_progress" || issue.status === "In Progress") currentStep = 4; 
+  if (issue.status === "resolved" || issue.status === "Completed") currentStep = 5; 
+
+  const stages = [
+    { id: 1, name: "Signal Received", icon: <ClipboardList size={18} /> },
+    { id: 2, name: "AI Analyzed", icon: <BrainCircuit size={18} /> },
+    { id: 3, name: "Partner Matched", icon: <Users size={18} /> },
+    { id: 4, name: "In Progress", icon: <Wrench size={18} /> },
+    { id: 5, name: "Resolved", icon: <CheckCircle2 size={18} /> }
+  ];
+
+  return (
+    <div className="civic-tracker">
+      <div className="tracker-track">
+        {stages.map((stage, index) => {
+          const isActive = stage.id <= currentStep;
+          const isLast = index === stages.length - 1;
+          
+          return (
+            <React.Fragment key={stage.id}>
+              <div className={`tracker-node ${isActive ? "active" : ""}`}>
+                <div className="node-icon">{stage.icon}</div>
+                <span className="node-label">{stage.name}</span>
+              </div>
+              {!isLast && (
+                <div className={`tracker-line ${stage.id < currentStep ? "active-line" : ""}`} />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function Detail({ user }) {
   const { id } = useParams(),
     [issue, setIssue] = useState(null),
     [busy, setBusy] = useState(false),
     [err, setErr] = useState("");
 
-  // Load the issue + saved AI analysis + saved matches
+  const [upvotes, setUpvotes] = useState(0);
+  const [hasUpvoted, setHasUpvoted] = useState(false);
+  const [pledges, setPledges] = useState([]);
+  const [pledgeText, setPledgeText] = useState("");
+  const [showPledgeForm, setShowPledgeForm] = useState(false);
+
   useEffect(() => {
     api
       .get("/issues/" + id)
       .then((r) => {
         const data = r.data;
-
         setIssue({
           ...data.issue,
           aiAnalysis: data.aiAnalysis || null,
@@ -882,26 +1030,36 @@ function Detail({ user }) {
       .catch(() => setErr("This issue is no longer available."));
   }, [id]);
 
+  useEffect(() => {
+    if (issue && id) {
+      const loadData = () => {
+        const savedPledges = JSON.parse(localStorage.getItem(`nn-pledges-${id}`) || "[]");
+        setPledges(savedPledges);
+        const savedUpvotes = parseInt(localStorage.getItem(`nn-upvotes-${id}`) || Math.floor(Math.random() * 12) + 2);
+        setUpvotes(savedUpvotes);
+        const userUpvoted = localStorage.getItem(`nn-upvoted-${id}-${user.id || user._id}`) === "true";
+        setHasUpvoted(userUpvoted);
+      };
+      loadData();
+      window.addEventListener("storage", loadData);
+      return () => window.removeEventListener("storage", loadData);
+    }
+  }, [issue, id, user]);
+
   const analyze = async () => {
     setBusy(true);
     setErr("");
 
     try {
-      // Run AI analysis
       const r = await api.post(`/issues/${id}/analyze`);
-
-      // Immediately show the saved analysis
       setIssue({
         ...r.data.issue,
         aiAnalysis: r.data.analysis,
         matches: [],
       });
 
-      // Generate organization matches
       try {
         await api.post(`/issues/${id}/match-organizations`);
-
-        // Get the complete saved issue again
         const matchResponse = await api.get(`/issues/${id}`);
         const data = matchResponse.data;
 
@@ -911,23 +1069,35 @@ function Detail({ user }) {
           matches: data.matches || [],
         });
       } catch (matchError) {
-        console.error(
-          "Organization matching failed:",
-          matchError.response?.data || matchError.message
-        );
+        console.error("Organization matching failed:", matchError);
       }
     } catch (e) {
-      console.error(
-        "AI analysis error:",
-        e.response?.data || e
-      );
-
-      setErr(
-        e.response?.data?.message ||
-        "Analysis could not be completed."
-      );
+      setErr(e.response?.data?.message || "Analysis could not be completed.");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handleUpvote = () => {
+    if (!hasUpvoted) {
+      const newUpvotes = upvotes + 1;
+      setUpvotes(newUpvotes);
+      setHasUpvoted(true);
+      localStorage.setItem(`nn-upvotes-${id}`, newUpvotes);
+      localStorage.setItem(`nn-upvoted-${id}-${user.id || user._id}`, "true");
+    }
+  };
+
+  const handlePledge = (e) => {
+    e.preventDefault();
+    if (pledgeText.trim()) {
+      const newPledge = { orgName: user.name, text: pledgeText };
+      const updatedPledges = [...pledges, newPledge];
+      setPledges(updatedPledges);
+      localStorage.setItem(`nn-pledges-${id}`, JSON.stringify(updatedPledges));
+      window.dispatchEvent(new Event("storage"));
+      setPledgeText("");
+      setShowPledgeForm(false);
     }
   };
 
@@ -973,7 +1143,6 @@ function Detail({ user }) {
           </p>
         </div>
 
-        {/* Analyze button only appears BEFORE analysis */}
         {user.role === "admin" && !issue.analyzed && (
           <button
             className="btn analyze"
@@ -990,21 +1159,72 @@ function Detail({ user }) {
         )}
       </div>
 
+      <IssueTracker issue={issue} />
+
       <article className="detail-description">
         <h2>What the community is seeing</h2>
         <p>{issue.description}</p>
       </article>
 
-      {/* Show saved analysis whenever it exists */}
+      <div className="community-impact">
+        <div className="impact-header">
+          <h3>Community Momentum</h3>
+          <span className="upvote-count"><ThumbsUp size={16} /> {upvotes} Citizens Affected</span>
+        </div>
+
+        {["citizen", "ngo"].includes(user.role) && (
+          <button 
+            className={`btn full ${hasUpvoted ? "upvoted" : "upvote-btn"}`} 
+            onClick={handleUpvote}
+            disabled={hasUpvoted}
+          >
+            {hasUpvoted ? "✅ You endorsed this issue" : "✋ I am affected by this too"}
+          </button>
+        )}
+
+        {["university", "industry"].includes(user.role) && (
+          <div className="pledge-section">
+            {!showPledgeForm ? (
+              <button className="btn full pledge-btn" onClick={() => setShowPledgeForm(true)}>
+                <HandHeart size={18} /> Pledge Resources or Expertise
+              </button>
+            ) : (
+              <form onSubmit={handlePledge} className="pledge-form">
+                <textarea 
+                  required 
+                  placeholder="E.g., We can donate 5 bags of cement, or our engineering students can survey this..."
+                  value={pledgeText}
+                  onChange={(e) => setPledgeText(e.target.value)}
+                />
+                <div className="pledge-actions">
+                  <button type="button" className="text-btn" onClick={() => setShowPledgeForm(false)}>Cancel</button>
+                  <button type="submit" className="btn small">Submit Pledge</button>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
+
+        {pledges.length > 0 && (
+          <div className="active-pledges">
+            <h4>Active Pledges</h4>
+            {pledges.map((p, i) => (
+              <div key={i} className="pledge-card">
+                <strong>{p.orgName}</strong> pledged:
+                <p>{p.text}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {issue.analyzed && issue.aiAnalysis ? (
         <Analysis issue={issue} />
       ) : (
         <div className="await">
           <BrainCircuit />
-
           <div>
             <h3>Waiting for civic intelligence</h3>
-
             <p>
               Once an administrator analyzes this issue, its
               priority, solution idea and likely partners will
@@ -1035,10 +1255,6 @@ function OrganizationDashboard({ user }) {
 
       const allChallenges = response.data || [];
 
-      /*
-       * Only keep challenges assigned to the
-       * currently logged-in organization.
-       */
       const assigned = allChallenges.filter(
         (challenge) => challenge.my_assignment
       );
@@ -1247,8 +1463,6 @@ function OrganizationDashboard({ user }) {
                 </div>
               )}
 
-              {/* YOUR ORGANIZATION'S PROGRESS */}
-
               <div className="challenge-progress">
                 {[
                   "Assigned",
@@ -1302,8 +1516,6 @@ function OrganizationDashboard({ user }) {
                   );
                 })}
               </div>
-
-              {/* ACTIONS */}
 
               <div className="organization-challenge-actions">
 
@@ -1383,8 +1595,6 @@ function OrganizationDashboard({ user }) {
 
               </div>
 
-              {/* STATUS MESSAGE */}
-
               {challenge.my_assignment_status ===
                 "Assigned" && (
                   <div className="progress-message">
@@ -1453,7 +1663,6 @@ function AdminDashboard() {
   const [issues, setIssues] = useState([]);
   const [challenges, setChallenges] = useState([]);
   const [selectedChallenge, setSelectedChallenge] = useState(null);
-  const [selectedOrganizations, setSelectedOrganizations] = useState({});
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
@@ -1606,10 +1815,6 @@ function AdminDashboard() {
         </div>
       )}
 
-      {/* ================================
-          OVERVIEW
-      ================================= */}
-
       <div className="admin-stats">
         <div className="stat-card">
           <span>Complaints</span>
@@ -1647,10 +1852,6 @@ function AdminDashboard() {
           </strong>
         </div>
       </div>
-
-      {/* ================================
-          STEP 1 — GENERATE CHALLENGE
-      ================================= */}
 
       <section className="admin-section">
         <div className="section-heading">
@@ -1761,10 +1962,6 @@ function AdminDashboard() {
         </div>
       </section>
 
-      {/* ================================
-          STEP 2 — CHALLENGE + ASSIGNMENT
-      ================================= */}
-
       <section className="admin-section">
         <div className="section-heading">
           <div>
@@ -1844,7 +2041,6 @@ function AdminDashboard() {
                       </div>
                     )}
 
-                  {/* ASSIGNMENT AREA */}
                   {selectedChallenge?.challenge
                     ?.id === challenge.id && (
                       <div className="assignment-panel">
@@ -2033,10 +2229,6 @@ function AdminDashboard() {
         </div>
       </section>
 
-      {/* ================================
-    STEP 3 — PROGRESS
-================================= */}
-
       <section className="admin-section">
         <div className="section-heading">
           <div>
@@ -2053,13 +2245,6 @@ function AdminDashboard() {
 
         <div className="challenge-progress-list">
           {challenges.map((challenge) => {
-            /*
-             * New backend:
-             * challenge.assignments
-             *
-             * Old backend fallback:
-             * challenge.matches
-             */
             const assignments =
               challenge.assignments?.length
                 ? challenge.assignments
@@ -2079,9 +2264,6 @@ function AdminDashboard() {
                 className="challenge-progress-card"
                 key={challenge.id}
               >
-                {/* =========================
-              CHALLENGE HEADER
-          ========================== */}
 
                 <div className="challenge-progress-header">
                   <div>
@@ -2102,9 +2284,6 @@ function AdminDashboard() {
                   </span>
                 </div>
 
-                {/* =========================
-              NO ASSIGNMENTS
-          ========================== */}
 
                 {assignments.length === 0 ? (
                   <>
@@ -2125,10 +2304,6 @@ function AdminDashboard() {
                     </div>
                   </>
                 ) : (
-                  /* =========================
-                     MULTIPLE ORGANIZATIONS
-                  ========================== */
-
                   <div className="assigned-organizations-list">
                     {assignments.map((assignment) => {
                       const status =
@@ -2149,7 +2324,6 @@ function AdminDashboard() {
                           className="assigned-organization-progress"
                           key={assignment.id}
                         >
-                          {/* ORGANIZATION */}
 
                           <div className="assigned-organization">
                             {organization?.role ===
@@ -2182,10 +2356,6 @@ function AdminDashboard() {
                               {status}
                             </span>
                           </div>
-
-                          {/* =====================
-                        PROGRESS TRACKER
-                    ====================== */}
 
                           <div className="challenge-progress">
                             {stages.map(
@@ -2242,10 +2412,6 @@ function AdminDashboard() {
                               }
                             )}
                           </div>
-
-                          {/* =====================
-                        STATUS MESSAGE
-                    ====================== */}
 
                           {status === "Completed" && (
                             <div className="progress-message completed-message">
@@ -2337,7 +2503,6 @@ function Analysis({ issue }) {
   return (
     <section className="analysis">
 
-      {/* Header */}
       <div className="analysis-head">
         <div className="icon-box green">
           <BrainCircuit />
@@ -2351,7 +2516,6 @@ function Analysis({ issue }) {
         </div>
       </div>
 
-      {/* Basic analysis */}
       <div className="analysis-grid">
 
         <div>
@@ -2387,7 +2551,6 @@ function Analysis({ issue }) {
 
       </div>
 
-      {/* Root cause */}
       <div className="solution">
         <Sparkles size={19} />
 
@@ -2407,7 +2570,6 @@ function Analysis({ issue }) {
         </div>
       </div>
 
-      {/* Impacts */}
       <div className="analysis-block">
         <h2>Impact</h2>
 
@@ -2422,7 +2584,6 @@ function Analysis({ issue }) {
         )}
       </div>
 
-      {/* Recommended actions */}
       <div className="analysis-block">
         <h2>Recommended actions</h2>
 
@@ -2437,7 +2598,6 @@ function Analysis({ issue }) {
         )}
       </div>
 
-      {/* Preventive measures */}
       <div className="analysis-block">
         <h2>Preventive measures</h2>
 
@@ -2452,7 +2612,6 @@ function Analysis({ issue }) {
         )}
       </div>
 
-      {/* Technology + data */}
       <div className="analysis-block">
         <h2>Technology & data requirements</h2>
 
@@ -2467,7 +2626,6 @@ function Analysis({ issue }) {
         )}
       </div>
 
-      {/* Practical solution */}
       <div className="solution">
         <Sparkles size={19} />
 
@@ -2481,13 +2639,11 @@ function Analysis({ issue }) {
         </div>
       </div>
 
-      {/* Confidence */}
       <div className="analysis-block">
         <h2>AI confidence</h2>
         <p>{analysis.confidence || "Not specified"}</p>
       </div>
 
-      {/* Verification */}
       {analysis.verification_required && (
         <div className="analysis-block">
           <h2>Verification required</h2>
@@ -2499,7 +2655,6 @@ function Analysis({ issue }) {
         </div>
       )}
 
-      {/* Historical evidence */}
       {analysis.evidence_summary && (
         <div className="analysis-block">
           <h2>Historical evidence</h2>
@@ -2510,7 +2665,6 @@ function Analysis({ issue }) {
           </p>
         </div>
       )}
-      {/* Matched organizations */}
       <div className="analysis-block organization-matches">
 
         <div className="organization-heading">
@@ -2554,7 +2708,6 @@ function Analysis({ issue }) {
                   key={match.id}
                 >
 
-                  {/* Icon */}
                   <div className="organization-icon">
 
                     {role === "university" ? (
@@ -2565,8 +2718,6 @@ function Analysis({ issue }) {
 
                   </div>
 
-
-                  {/* Main information */}
                   <div className="organization-info">
 
                     <div className="organization-top">
@@ -2583,13 +2734,10 @@ function Analysis({ issue }) {
 
                     </div>
 
-
                     <h3>
                       {organization.name}
                     </h3>
 
-
-                    {/* Location */}
                     {(details.city || details.state) && (
                       <p className="organization-location">
                         <MapPin size={14} />
@@ -2602,8 +2750,6 @@ function Analysis({ issue }) {
                       </p>
                     )}
 
-
-                    {/* Matched expertise */}
                     {match.matched_expertise?.length > 0 && (
                       <div className="matched-capabilities">
 
@@ -2626,8 +2772,6 @@ function Analysis({ issue }) {
                       </div>
                     )}
 
-
-                    {/* Why matched */}
                     {match.match_reason && (
                       <p className="match-reason">
                         {match.match_reason}
