@@ -1107,3 +1107,142 @@ header nav {
     padding-bottom: 90px !important; /* Prevents Chat with Nova from hiding links */
   }
 }
+
+/* ========================================================= */
+/* 📱 INSTAGRAM-STYLE MOBILE NAVIGATION                      */
+/* ========================================================= */
+
+/* Base visibility defaults */
+.mobile-only { display: none !important; }
+.nav-icon { display: none; }
+.coin-bubble {
+  display: flex; align-items: center; gap: 6px; color: #f59e0b; 
+  font-weight: bold; background: rgba(245, 158, 11, 0.1); 
+  padding: 6px 12px; border-radius: 20px;
+}
+
+@media (max-width: 850px) {
+  /* Toggle visibility */
+  .mobile-only { display: flex !important; }
+  .desktop-only { display: none !important; }
+  .nav-icon { display: block !important; width: 24px; height: 24px; }
+  .nav-text { display: none !important; }
+
+  /* Body spacing to clear fixed top/bottom bars */
+  body {
+    padding-bottom: 70px !important; 
+    padding-top: 60px !important;
+  }
+
+  /* ------------------------------- */
+  /* TOP HEADER (Instagram Top Bar)  */
+  /* ------------------------------- */
+  header {
+    position: fixed !important;
+    top: 0; left: 0; width: 100%;
+    height: 60px !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    background: var(--paper) !important;
+    border-bottom: 1px solid var(--line) !important;
+    z-index: 1000 !important;
+    padding: 0 20px !important;
+  }
+  
+  body.dark-mode header {
+    background: #090e17 !important;
+    border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+  }
+
+  .mobile-top-left {
+    position: absolute;
+    left: 20px;
+  }
+  .mobile-top-right {
+    position: absolute;
+    right: 20px;
+    align-items: center;
+    gap: 12px;
+  }
+  .mobile-icon-color {
+    color: var(--ink);
+  }
+  body.dark-mode .mobile-icon-color {
+    color: #f1f5f9;
+  }
+
+  /* Hide the original hamburger button */
+  button.menu {
+    display: none !important;
+  }
+
+  /* ------------------------------- */
+  /* BOTTOM NAV (Instagram Dock)     */
+  /* ------------------------------- */
+  header nav {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    top: auto !important;
+    width: 100% !important;
+    height: 70px !important; /* Touch friendly height */
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-around !important;
+    align-items: center !important;
+    background: var(--paper) !important;
+    border-top: 1px solid var(--line) !important;
+    border-bottom: none !important;
+    padding: 0 10px 15px 10px !important; /* Safe padding for iOS home bar */
+    z-index: 9999 !important;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.05) !important;
+    margin: 0 !important;
+  }
+  
+  body.dark-mode header nav {
+    background: #090e17 !important;
+    border-top: 1px solid rgba(255,255,255,0.1) !important;
+  }
+
+  header nav a {
+    padding: 10px !important;
+    color: var(--muted) !important;
+    transition: 0.2s;
+    width: auto !important; /* Overrides the previous mobile block rule */
+  }
+  
+  body.dark-mode header nav a {
+    color: #94a3b8 !important;
+  }
+
+  /* Active state styles */
+  header nav a.active {
+    color: var(--ink) !important;
+  }
+  body.dark-mode header nav a.active {
+    color: #ffffff !important;
+  }
+  header nav a.active .nav-icon {
+    stroke-width: 2.5px !important;
+  }
+
+  /* Center "Add" Button emphasis */
+  .mobile-add-btn .nav-icon {
+    width: 30px !important;
+    height: 30px !important;
+  }
+  
+  /* Active Profile Avatar */
+  header nav a.active .user-dot {
+    border: 2px solid var(--ink) !important;
+  }
+  body.dark-mode header nav a.active .user-dot {
+    border: 2px solid #ffffff !important;
+  }
+  
+  /* Float Chat Widget above the bottom nav */
+  div[class*="chat-widget"], button[class*="chat-fab"], div[class*="chat-fab"] {
+     bottom: 90px !important;
+  }
+}

@@ -30,11 +30,9 @@ import {
   Leaf,
   LoaderCircle,
   MapPin,
-  Menu,
   Plus,
   Sparkles,
   Users,
-  X,
   Camera,
   Moon, 
   Sun,
@@ -43,7 +41,14 @@ import {
   ClipboardList,
   Wrench,
   Eye,
-  EyeOff
+  EyeOff,
+  // INSTAGRAM NAV ICONS
+  Home as HomeIcon,
+  Map as MapIcon,
+  PlusSquare,
+  Gift,
+  User as UserIcon,
+  LogOut
 } from "lucide-react";
 import "./styles.css";
 import CitizenMap from "./CitizenMap.jsx";
@@ -263,13 +268,22 @@ function Require({ user, children }) {
 }
 
 function Nav({ auth }) {
-  const [open, setOpen] = useState(false);
-  
-  const closeMenu = () => setOpen(false);
+  const getAddRoute = () => {
+    if (!auth.user) return "/login";
+    if (auth.user.role === "admin") return "/admin";
+    if (["university", "industry"].includes(auth.user.role)) return "/organization";
+    return "/dashboard";
+  };
 
   return (
     <header>
-      <Link className="brand" to="/" onClick={closeMenu}>
+      {/* --- MOBILE TOP BAR: LEFT (Dark Mode) --- */}
+      <div className="mobile-only mobile-top-left">
+        <DarkModeToggle />
+      </div>
+
+      {/* --- MOBILE TOP BAR: CENTER (Brand) --- */}
+      <Link className="brand" to="/">
         <span className="brand-mark">
           <Leaf size={20} />
         </span>
@@ -277,67 +291,108 @@ function Nav({ auth }) {
           Nagrik <i>Nova</i>
         </span>
       </Link>
-      <button className="menu" onClick={() => setOpen(!open)}>
-        {open ? <X /> : <Menu />}
-      </button>
-      <nav className={open ? "show" : ""}>
-        <NavLink to="/issues" onClick={closeMenu}>Explore issues</NavLink>
-        <NavLink to="/citizen-map" onClick={closeMenu}>Live Map</NavLink>
-        <NavLink to="/rewards" onClick={closeMenu}>Rewards</NavLink>
-        
-        {auth.user && ["citizen", "ngo"].includes(auth.user.role) && (
-          <NavLink to="/dashboard" onClick={closeMenu}>My dashboard</NavLink>
-        )}
 
-        {auth.user &&
-          ["university", "industry", "ngo"].includes(auth.user.role) && (
-            <NavLink to="/organization" onClick={closeMenu}>
-              My Challenges
-            </NavLink>
-          )}
-          
-        {auth.user && auth.user.role === "admin" && (
-          <>
-            <NavLink to="/admin" onClick={closeMenu}>Admin</NavLink>
-            <NavLink to="/vr-map" className="vr-link" onClick={closeMenu}>
-              <Sparkles size={15} /> VR Command Center
-            </NavLink>
-          </>
-        )}
-        
-        <DarkModeToggle />
-        
+      {/* --- MOBILE TOP BAR: RIGHT (Coins & Logout) --- */}
+      <div className="mobile-only mobile-top-right">
         {auth.user ? (
-          <div className="nav-user" style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#f59e0b', fontWeight: 'bold', background: 'rgba(245, 158, 11, 0.1)', padding: '6px 12px', borderRadius: '20px' }} title="Nova Coins">
-              <Sparkles size={15} />
+          <>
+            <div className="coin-bubble" style={{ padding: '4px 8px', fontSize: '12px' }}>
+              <Sparkles size={12} />
               {auth.user.nova_coins || 0}
             </div>
-
-            <span className="user-dot">
-              {auth.user.name
-                .split(" ")
-                .map((x) => x[0])
-                .slice(0, 2)}
-            </span>
-
-            <Link to="/settings" className="text-btn" onClick={closeMenu} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <Wrench size={14} /> Settings
-            </Link>
-
-            <button className="text-btn" onClick={() => { auth.out(); closeMenu(); }}>
-              Sign out
+            <button className="text-btn" onClick={auth.out} style={{ padding: 0 }}>
+              <LogOut size={20} className="mobile-icon-color" />
             </button>
-          </div>
+          </>
         ) : (
-          <div className="nav-auth" style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-            <Link to="/login" onClick={closeMenu}>Sign in</Link>
-            <Link className="btn small" to="/register" onClick={closeMenu}>
-              Join the network <ArrowRight size={15} />
-            </Link>
-          </div>
+          <div style={{width: '20px'}}></div> /* Empty spacer for balance */
         )}
+      </div>
+
+      <nav>
+        {/* 1. Explore Issues (Home Icon) */}
+        <NavLink to="/issues" style={{ order: 1 }}>
+          <HomeIcon className="nav-icon" />
+          <span className="nav-text">Explore issues</span>
+        </NavLink>
+        
+        {/* 2. Live Map (Map Icon) */}
+        <NavLink to="/citizen-map" style={{ order: 2 }}>
+          <MapIcon className="nav-icon" />
+          <span className="nav-text">Live Map</span>
+        </NavLink>
+
+        {/* 3. Center ADD Button (Mobile Only Plus Icon) */}
+        <NavLink to={getAddRoute()} className="mobile-only mobile-add-btn" style={{ order: 3 }}>
+          <PlusSquare className="nav-icon" />
+        </NavLink>
+
+        {/* 4. Rewards (Gift Icon) */}
+        <NavLink to="/rewards" style={{ order: 4 }}>
+          <Gift className="nav-icon" />
+          <span className="nav-text">Rewards</span>
+        </NavLink>
+
+        {/* 5. Profile Settings (Mobile Only User Icon/Avatar) */}
+        <NavLink to={auth.user ? "/settings" : "/login"} className="mobile-only profile-nav" style={{ order: 5 }}>
+          {auth.user ? (
+            <span className="user-dot nav-icon" style={{ width: 26, height: 26, fontSize: '10px', margin: 0, padding: 0 }}>
+              {auth.user.name.split(" ").map((x) => x[0]).slice(0, 2)}
+            </span>
+          ) : (
+            <UserIcon className="nav-icon" />
+          )}
+        </NavLink>
+
+        {/* --- DESKTOP EXCLUSIVE LINKS --- */}
+        <div className="desktop-only" style={{ display: 'flex', gap: '25px', alignItems: 'center' }}>
+          {auth.user && ["citizen", "ngo"].includes(auth.user.role) && (
+            <NavLink to="/dashboard">My dashboard</NavLink>
+          )}
+
+          {auth.user && ["university", "industry", "ngo"].includes(auth.user.role) && (
+            <NavLink to="/organization">My Challenges</NavLink>
+          )}
+            
+          {auth.user && auth.user.role === "admin" && (
+            <>
+              <NavLink to="/admin">Admin</NavLink>
+              <NavLink to="/vr-map" className="vr-link">
+                <Sparkles size={15} /> VR Command Center
+              </NavLink>
+            </>
+          )}
+          
+          <DarkModeToggle />
+          
+          {auth.user ? (
+            <div className="nav-user" style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+              <div className="coin-bubble" title="Nova Coins">
+                <Sparkles size={15} />
+                {auth.user.nova_coins || 0}
+              </div>
+
+              <span className="user-dot">
+                {auth.user.name.split(" ").map((x) => x[0]).slice(0, 2)}
+              </span>
+
+              <Link to="/settings" className="text-btn" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <Wrench size={14} /> Settings
+              </Link>
+
+              <button className="text-btn" onClick={auth.out}>
+                Sign out
+              </button>
+            </div>
+          ) : (
+            <div className="nav-auth" style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+              <Link to="/login">Sign in</Link>
+              <Link className="btn small" to="/register">
+                Join the network <ArrowRight size={15} />
+              </Link>
+            </div>
+          )}
+        </div>
       </nav>
     </header>
   );
