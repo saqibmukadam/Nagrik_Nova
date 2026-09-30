@@ -67,6 +67,46 @@ api.interceptors.response.use(
   }
 );
 
+// --- INDIAN STATES & CITIES DATA DICTIONARY ---
+const indiaData = {
+  "Andaman and Nicobar Islands": ["Port Blair"],
+  "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Nellore", "Tirupati"],
+  "Arunachal Pradesh": ["Itanagar", "Tawang", "Pasighat", "Ziro"],
+  "Assam": ["Guwahati", "Silchar", "Dibrugarh", "Jorhat"],
+  "Bihar": ["Patna", "Gaya", "Bhagalpur", "Muzaffarpur"],
+  "Chandigarh": ["Chandigarh"],
+  "Chhattisgarh": ["Raipur", "Bhilai", "Bilaspur", "Korba"],
+  "Dadra and Nagar Haveli and Daman and Diu": ["Daman", "Diu", "Silvassa"],
+  "Delhi": ["New Delhi", "North Delhi", "South Delhi", "East Delhi"],
+  "Goa": ["Panaji", "Margao", "Vasco da Gama", "Mapusa"],
+  "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Gandhinagar"],
+  "Haryana": ["Gurugram", "Faridabad", "Panipat", "Ambala", "Karnal"],
+  "Himachal Pradesh": ["Shimla", "Manali", "Dharamshala", "Mandi"],
+  "Jammu and Kashmir": ["Srinagar", "Jammu", "Anantnag", "Baramulla"],
+  "Jharkhand": ["Ranchi", "Jamshedpur", "Dhanbad", "Bokaro"],
+  "Karnataka": ["Bengaluru", "Mysuru", "Mangaluru", "Hubballi", "Belagavi"],
+  "Kerala": ["Thiruvananthapuram", "Kochi", "Kozhikode", "Thrissur"],
+  "Ladakh": ["Leh", "Kargil"],
+  "Lakshadweep": ["Kavaratti"],
+  "Madhya Pradesh": ["Bhopal", "Indore", "Gwalior", "Jabalpur", "Ujjain"],
+  "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Nashik", "Thane", "Aurangabad", "Talegaon Dabhade", "Pimpri-Chinchwad"],
+  "Manipur": ["Imphal", "Churachandpur", "Thoubal"],
+  "Meghalaya": ["Shillong", "Tura", "Jowai"],
+  "Mizoram": ["Aizawl", "Lunglei", "Champhai"],
+  "Nagaland": ["Kohima", "Dimapur", "Mokokchung"],
+  "Odisha": ["Bhubaneswar", "Cuttack", "Rourkela", "Brahmapur"],
+  "Puducherry": ["Pondicherry", "Auroville", "Yanam"],
+  "Punjab": ["Chandigarh", "Ludhiana", "Amritsar", "Jalandhar", "Patiala"],
+  "Rajasthan": ["Jaipur", "Jodhpur", "Udaipur", "Kota", "Bikaner"],
+  "Sikkim": ["Gangtok", "Namchi", "Pelling"],
+  "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai", "Tiruchirappalli", "Salem"],
+  "Telangana": ["Hyderabad", "Warangal", "Nizamabad", "Karimnagar"],
+  "Tripura": ["Agartala", "Dharmanagar", "Udaipur"],
+  "Uttar Pradesh": ["Lucknow", "Kanpur", "Agra", "Varanasi", "Noida", "Prayagraj"],
+  "Uttarakhand": ["Dehradun", "Haridwar", "Roorkee", "Rishikesh"],
+  "West Bengal": ["Kolkata", "Howrah", "Darjeeling", "Siliguri", "Asansol"]
+};
+
 const useAuth = () => {
   const [user, setUser] = useState(() =>
     JSON.parse(localStorage.getItem("nn-user") || "null"),
@@ -801,7 +841,6 @@ function Dashboard({ user, auth }) {
 
       if (r.data.new_coins) {
         auth.updateUser({ ...user, nova_coins: r.data.new_coins });
-        // Set to match banner output!
         setMsg(`Report accepted! You earned +20 Nova Coins. (Total: ${r.data.new_coins})`);
       } else {
         setMsg("Your issue is now visible to the Nagrik Nova network.");
@@ -933,34 +972,49 @@ function Dashboard({ user, auth }) {
             />
           </label>
 
-          <div className="location-row">
-            <Field
-              label="State"
-              value={data.state}
-              onChange={(e) =>
-                setData({ ...data, state: e.target.value })
-              }
-              placeholder="Type your state"
-            />
+          {/* THE FIX: STATE & CITY DATALISTS */}
+          <div className="two">
+            <label style={{ position: 'relative', display: 'block' }}>
+              State
+              <input
+                list="states-list"
+                required
+                placeholder="Type or select a state"
+                value={data.state}
+                onChange={(e) => setData({ ...data, state: e.target.value, city: "" })} 
+                style={{ width: '100%' }}
+              />
+              <datalist id="states-list">
+                {Object.keys(indiaData).map((st) => (
+                  <option key={st} value={st} />
+                ))}
+              </datalist>
+            </label>
 
-            <Field
-              label="City"
-              value={data.city}
-              onChange={(e) =>
-                setData({ ...data, city: e.target.value })
-              }
-              placeholder="Type your city"
-            />
-
-            <Field
-              label="Exact Street / Landmark / Coordinates"
-              value={data.street}
-              onChange={(e) =>
-                setData({ ...data, street: e.target.value })
-              }
-              placeholder="Example: Wakad Main Road"
-            />
+            <label style={{ position: 'relative', display: 'block' }}>
+              City
+              <input
+                list="cities-list"
+                required
+                placeholder="Type or select a city"
+                value={data.city}
+                onChange={(e) => setData({ ...data, city: e.target.value })}
+                style={{ width: '100%' }}
+              />
+              <datalist id="cities-list">
+                {indiaData[data.state] && indiaData[data.state].map((c) => (
+                  <option key={c} value={c} />
+                ))}
+              </datalist>
+            </label>
           </div>
+
+          <Field
+            label="Exact Street / Landmark / Coordinates"
+            value={data.street}
+            onChange={(e) => setData({ ...data, street: e.target.value })}
+            placeholder="Example: Wakad Main Road"
+          />
 
           <label>Capture exact spatial location (Optional)</label>
           <ARReporter
@@ -993,7 +1047,6 @@ function Dashboard({ user, auth }) {
             <Empty text="Your submitted issues will appear here." />
           )}
 
-          {/* THE FIX: NEW REWARD BANNER PLACED UNDER YOUR REPORTS */}
           <div style={{ 
             marginTop: '25px', 
             padding: '20px', 
