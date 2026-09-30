@@ -277,9 +277,28 @@ function Nav({ auth }) {
 
   return (
     <header>
-      {/* --- MOBILE TOP BAR: LEFT (Dark Mode) --- */}
-      <div className="mobile-only mobile-top-left">
+      {/* --- MOBILE TOP BAR: LEFT (Dark Mode & VR Center for Admins) --- */}
+      <div className="mobile-only mobile-top-left" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
         <DarkModeToggle />
+        
+        {/* NEW: Admin-only VR Command Center Mobile Access */}
+        {auth.user && auth.user.role === "admin" && (
+          <NavLink 
+            to="/vr-map" 
+            title="VR Command Center" 
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              padding: '6px', 
+              background: 'rgba(16, 185, 129, 0.15)', 
+              borderRadius: '8px', 
+              color: '#10b981', 
+              border: '1px solid rgba(16, 185, 129, 0.4)' 
+            }}
+          >
+            <Sparkles size={18} />
+          </NavLink>
+        )}
       </div>
 
       {/* --- MOBILE TOP BAR: CENTER (Brand) --- */}
@@ -322,7 +341,7 @@ function Nav({ auth }) {
           <span className="nav-text">Live Map</span>
         </NavLink>
 
-        {/* 3. Center ADD Button (Mobile Only Plus Icon) */}
+        {/* 3. Center ADD Button (Admin goes to Admin Dashboard) */}
         <NavLink to={getAddRoute()} className="mobile-only mobile-add-btn" style={{ order: 3 }}>
           <PlusSquare className="nav-icon" />
         </NavLink>
