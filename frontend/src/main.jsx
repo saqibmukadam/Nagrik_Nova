@@ -2747,7 +2747,7 @@ function Analysis({ issue }) {
                   <div className="organization-icon">
 
                     {role === "university" ? (
-                      <Building.2 size={22} />
+                      <Building2 size={22} />
                     ) : (
                       <Leaf size={22} />
                     )}
