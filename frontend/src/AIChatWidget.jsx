@@ -42,9 +42,9 @@ export default function AIChatWidget() {
     };
 
     return (
-        <div style={{ position: 'fixed', bottom: '25px', right: '25px', zIndex: 9999, fontFamily: 'inherit' }}>
+        /* THE FIX: Added className="chat-widget" so the mobile CSS can grab it and push it up */
+        <div className="chat-widget" style={{ position: 'fixed', bottom: '25px', right: '25px', zIndex: 9999, fontFamily: 'inherit' }}>
             {isOpen ? (
-                /* THE FIX: Added "chat-window" class and removed hardcoded solid backgrounds */
                 <div className="chat-window" style={{ width: '340px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
                     <div className="chat-header" style={{ padding: '16px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#182937' }}>
@@ -59,7 +59,6 @@ export default function AIChatWidget() {
                                     padding: '10px 14px',
                                     borderRadius: '12px',
                                     maxWidth: '85%',
-                                    /* Applying a subtle glass look to the bubbles themselves */
                                     background: msg.role === 'user' ? 'rgba(47, 116, 94, 0.85)' : 'rgba(255, 255, 255, 0.6)',
                                     backdropFilter: 'blur(10px)',
                                     border: '1px solid rgba(255,255,255,0.3)',
@@ -76,7 +75,6 @@ export default function AIChatWidget() {
                     </div>
 
                     <form onSubmit={sendMessage} style={{ padding: '12px', background: 'transparent', borderTop: '1px solid rgba(255, 255, 255, 0.4)', display: 'flex', gap: '8px' }}>
-                        {/* The global CSS will style this input automatically now */}
                         <input
                             type="text"
                             value={input}
@@ -84,14 +82,12 @@ export default function AIChatWidget() {
                             placeholder="Type your message..."
                             style={{ flex: 1, padding: '10px', fontSize: '14px' }}
                         />
-                        {/* THE FIX: Added "btn" class to make it match the 3D buttons */}
                         <button type="submit" className="btn small" disabled={loading} style={{ opacity: loading ? 0.7 : 1 }}>
                             Send
                         </button>
                     </form>
                 </div>
             ) : (
-                /* THE FIX: Added "chat-bubble" class and removed hardcoded solid styles */
                 <button
                     className="chat-bubble"
                     onClick={() => setIsOpen(true)}
@@ -102,4 +98,4 @@ export default function AIChatWidget() {
             )}
         </div>
     );
-} 
+}
