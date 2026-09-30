@@ -441,34 +441,28 @@ router.post("/", async (req, res) => {
       ward_area,
       domain,
       priority,
+      submitted_by,
+      submitter_role,
+      image_url // <-- ADDED THIS
     } = req.body;
 
-    const userId = req.user.id;
-    const userRole = req.user.role;
+    const userId = req.user?.id || req.user?._id || submitted_by;
+    const userRole = req.user?.role || submitter_role || "citizen";
 
     if (!title || !description) {
-      return res.status(400).json({
-        message: "Title and description are required.",
-      });
+      return res.status(400).json({ message: "Title and description are required." });
     }
 
-    // 1. Fetch current user status
     const { data: user, error: userErr } = await supabase
       .from("users")
       .select("nova_coins, strikes, is_banned")
       .eq("id", userId)
-      .single();
-
-    if (userErr) {
-      console.error("Error fetching user:", userErr);
-      return res.status(500).json({ message: "Could not verify user status." });
-    }
+      .maybeSingle();
 
     if (user?.is_banned) {
       return res.status(403).json({ isBanned: true, message: "Your account is suspended." });
     }
 
-    // 2. Check for duplicate/spam issues (using street and title)
     if (street) {
       const { data: duplicates } = await supabase
         .from("issues")
@@ -477,27 +471,22 @@ router.post("/", async (req, res) => {
         .ilike("title", `%${title}%`);
 
       if (duplicates && duplicates.length > 0) {
-        // 3. Issue a Strike
         const newStrikes = (user?.strikes || 0) + 1;
         const isBanned = newStrikes >= 3;
 
-        await supabase
-          .from("users")
-          .update({ strikes: newStrikes, is_banned: isBanned })
-          .eq("id", userId);
+        if (user) {
+          await supabase.from("users").update({ strikes: newStrikes, is_banned: isBanned }).eq("id", userId);
+        }
 
         return res.status(400).json({
           strikes: newStrikes,
           isBanned: isBanned,
-          message: isBanned
-            ? "Account permanently banned due to 3 duplicate/false reports."
-            : `Duplicate report detected at this location. Strike ${newStrikes} of 3.`
+          message: isBanned ? "Account permanently banned due to 3 duplicate/false reports." : `Duplicate report detected at this location. Strike ${newStrikes} of 3.`
         });
       }
     }
 
-    // 4. Create the valid issue
-    const { data: issue, error } = await supabase
+    const { data: issue, error: insertError } = await supabase
       .from("issues")
       .insert({
         title,
@@ -514,38 +503,29 @@ router.post("/", async (req, res) => {
         required_expertise: [],
         solution_idea: null,
         analyzed: false,
+        image_url: image_url || null // <-- ADDED THIS
       })
       .select("*")
       .single();
 
-    if (error) {
-      console.error("Create issue error:", error);
-      return res.status(500).json({
-        message: "Could not submit complaint.",
-      });
+    if (insertError) {
+      console.error("Create issue error:", insertError);
+      return res.status(500).json({ message: "Could not submit complaint." });
     }
 
-    // 5. Reward Nova Coins
-    const newCoins = (user?.nova_coins || 0) + 10;
-    await supabase
-      .from("users")
-      .update({ nova_coins: newCoins })
-      .eq("id", userId);
+    const newCoins = (user?.nova_coins || 0) + 20;
+    
+    if (user) {
+      await supabase.from("users").update({ nova_coins: newCoins }).eq("id", userId);
+    }
 
-    return res.status(201).json({
-      message: "Complaint submitted successfully.",
-      issue,
-      new_coins: newCoins
-    });
+    return res.status(201).json({ message: "Complaint submitted successfully.", issue, new_coins: newCoins });
 
   } catch (error) {
-    console.error("Create issue error:", error);
-    return res.status(500).json({
-      message: "Something went wrong while submitting the complaint.",
-    });
+    console.error("Fatal create issue error:", error);
+    return res.status(500).json({ message: "Something went wrong while submitting the complaint." });
   }
 });
-
 // =====================================================
 // ANALYZE COMPLAINT USING AI
 // =====================================================

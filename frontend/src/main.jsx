@@ -709,27 +709,38 @@ function Issues() {
 
 function IssueCard({ issue }) {
   return (
-    <Link to={`/issues/${issue.id}`} className="issue">
-      <div className="issue-meta">
-        <span className="role">{issue.submitter_role}</span>
-        {issue.analyzed ? (
-          <span className={`priority ${issue.priority?.toLowerCase()}`}>
-            {issue.priority} priority
+    <Link to={`/issues/${issue.id}`} className="issue" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      {/* SHOW IMAGE IF IT EXISTS */}
+      {issue.image_url && (
+        <img 
+          src={issue.image_url} 
+          alt={issue.title} 
+          style={{ width: '100%', height: '180px', objectFit: 'cover', borderBottom: '1px solid rgba(255,255,255,0.1)' }} 
+        />
+      )}
+      
+      <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+        <div className="issue-meta">
+          <span className="role">{issue.submitter_role}</span>
+          {issue.analyzed ? (
+            <span className={`priority ${issue.priority?.toLowerCase()}`}>
+              {issue.priority} priority
+            </span>
+          ) : (
+            <span className="pending">Awaiting analysis</span>
+          )}
+        </div>
+        <h3>{issue.title}</h3>
+        <p>{issue.description}</p>
+        <div className="issue-bottom" style={{ marginTop: 'auto', paddingTop: '15px' }}>
+          <span>
+            <MapPin size={15} />
+            {issue.city}, {issue.state}
           </span>
-        ) : (
-          <span className="pending">Awaiting analysis</span>
-        )}
-      </div>
-      <h3>{issue.title}</h3>
-      <p>{issue.description}</p>
-      <div className="issue-bottom">
-        <span>
-          <MapPin size={15} />
-          {issue.city}, {issue.state} · {issue.street}
-        </span>
-        <span className="arrow-circle">
-          <ArrowRight size={16} />
-        </span>
+          <span className="arrow-circle">
+            <ArrowRight size={16} />
+          </span>
+        </div>
       </div>
     </Link>
   );
@@ -826,7 +837,13 @@ function Dashboard({ user, auth }) {
     setMsg("");
 
     try {
-      const r = await api.post("/issues", data);
+      // INCLUDE IMAGE IN PAYLOAD
+      const payload = {
+        ...data,
+        image_url: imagePreview
+      };
+
+      const r = await api.post("/issues", payload);
 
       setIssues((prev) => [r.data.issue, ...prev]);
 
@@ -838,6 +855,8 @@ function Dashboard({ user, auth }) {
         city: "",
         street: "",
       });
+      
+      setImagePreview(null); // CLEAR IMAGE PREVIEW AFTER SUCCESS
 
       if (r.data.new_coins) {
         auth.updateUser({ ...user, nova_coins: r.data.new_coins });
@@ -849,7 +868,6 @@ function Dashboard({ user, auth }) {
       setVoiceResetKey((prev) => prev + 1);
     } catch (e) {
       const resData = e.response?.data;
-      
       if (e.response?.status === 403 || resData?.isBanned) {
         auth.updateUser({ ...user, is_banned: true, strikes: 3 });
       } else if (resData?.strikes) {
@@ -1264,6 +1282,13 @@ function Detail({ user }) {
           </button>
         )}
       </div>
+
+      {/* ADD THIS RIGHT BEFORE THE ISSUE TRACKER */}
+      {issue.image_url && (
+        <div style={{ width: '100%', maxHeight: '450px', borderRadius: '16px', overflow: 'hidden', marginBottom: '30px', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <img src={issue.image_url} alt="Evidence" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        </div>
+      )}
 
       <IssueTracker issue={issue} />
 
