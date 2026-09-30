@@ -222,7 +222,7 @@ function App() {
           <Route path="/register" element={<Register auth={auth} />} />
           
           <Route path="/issues" element={<Require user={auth.user}><Issues /></Require>} />
-          <Route path="/rewards" element={<Require user={auth.user}><Rewards user={auth.user} /></Require>} />
+          <Route path="/rewards" element={<Require user={auth.user}><Rewards user={auth.user} auth={auth} /></Require>} />
           <Route path="/issues/:id" element={<Require user={auth.user}><Detail user={auth.user} /></Require>} />
           <Route path="/citizen-map" element={<Require user={auth.user}><CitizenMap /></Require>} />
           <Route path="/dashboard" element={<Require user={auth.user}><Dashboard user={auth.user} auth={auth} /></Require>} />
