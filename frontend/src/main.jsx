@@ -270,7 +270,6 @@ function Nav({ auth }) {
         {auth.user ? (
           <div className="nav-user" style={{ display: "flex", alignItems: "center", gap: "15px" }}>
             
-            {/* THE FIX: Nova Coin Balance Display */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#f59e0b', fontWeight: 'bold', background: 'rgba(245, 158, 11, 0.1)', padding: '6px 12px', borderRadius: '20px' }} title="Nova Coins">
               <Sparkles size={15} />
               {auth.user.nova_coins || 0}
@@ -800,10 +799,10 @@ function Dashboard({ user, auth }) {
         street: "",
       });
 
-      // Update Nova Coins locally if rewarded by backend
       if (r.data.new_coins) {
         auth.updateUser({ ...user, nova_coins: r.data.new_coins });
-        setMsg(`Report accepted! You earned +10 Nova Coins. (Total: ${r.data.new_coins})`);
+        // Set to match banner output!
+        setMsg(`Report accepted! You earned +20 Nova Coins. (Total: ${r.data.new_coins})`);
       } else {
         setMsg("Your issue is now visible to the Nagrik Nova network.");
       }
@@ -812,7 +811,6 @@ function Dashboard({ user, auth }) {
     } catch (e) {
       const resData = e.response?.data;
       
-      // Catch bans and strikes perfectly
       if (e.response?.status === 403 || resData?.isBanned) {
         auth.updateUser({ ...user, is_banned: true, strikes: 3 });
       } else if (resData?.strikes) {
@@ -826,7 +824,6 @@ function Dashboard({ user, auth }) {
   
   if (!["citizen", "ngo"].includes(user.role)) return <Navigate to="/issues" />;
   
-  // THE FIX: Secure Red Ban Screen locks out the Dashboard
   if (user.is_banned) {
     return (
       <section className="page dashboard">
@@ -995,6 +992,26 @@ function Dashboard({ user, auth }) {
           ) : (
             <Empty text="Your submitted issues will appear here." />
           )}
+
+          {/* THE FIX: NEW REWARD BANNER PLACED UNDER YOUR REPORTS */}
+          <div style={{ 
+            marginTop: '25px', 
+            padding: '20px', 
+            background: 'rgba(245, 158, 11, 0.1)', 
+            border: '1px solid rgba(245, 158, 11, 0.3)', 
+            borderRadius: '12px', 
+            display: 'flex', 
+            flexDirection: 'column',
+            gap: '8px'
+          }}>
+            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: '#d97706', fontSize: '16px' }}>
+              <Sparkles size={18} /> Earn Nova Coins
+            </h3>
+            <p style={{ margin: 0, fontSize: '13px', lineHeight: '1.5', color: 'var(--muted)' }}>
+              Making a valid civic report will earn you <strong>20 Nova Coins</strong>! Help your community and collect rewards.
+            </p>
+          </div>
+          
         </aside>
       </div>
     </section>
