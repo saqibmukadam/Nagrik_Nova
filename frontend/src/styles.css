@@ -1081,3 +1081,29 @@ header nav {
     padding-bottom: 0;
   }
 }
+
+/* ========================================================= */
+/* 📱 EMERGENCY MOBILE RESPONSIVENESS FIXES                  */
+/* ========================================================= */
+@media (max-width: 850px) {
+  /* Force single column for Issue Grid */
+  .issue-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Force single column for 'How it Works' section */
+  .how {
+    grid-template-columns: 1fr !important;
+    gap: 30px !important;
+  }
+  
+  /* Fix footer overlapping with chat widget */
+  .footer-links {
+    flex-direction: column !important;
+    gap: 20px !important;
+  }
+  
+  footer {
+    padding-bottom: 90px !important; /* Prevents Chat with Nova from hiding links */
+  }
+}

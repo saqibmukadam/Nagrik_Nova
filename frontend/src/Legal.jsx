@@ -9,13 +9,24 @@ function LegalShell({ title, icon, lastUpdated, children }) {
       <Link to="/" className="back" style={{ display: 'inline-flex', marginBottom: '20px' }}>
         <ArrowLeft size={16} style={{ marginRight: '5px' }}/> Back to Home
       </Link>
-      <div className="page-head" style={{ borderBottom: '1px solid rgba(150,150,150,0.2)', paddingBottom: '20px', marginBottom: '30px' }}>
-        <div className="eyebrow" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      
+      {/* THE FIX: Pushed title and text to the right side for mobile consistency */}
+      <div className="page-head" style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'flex-end', 
+        textAlign: 'right', 
+        borderBottom: '1px solid rgba(150,150,150,0.2)', 
+        paddingBottom: '20px', 
+        marginBottom: '30px' 
+      }}>
+        <div className="eyebrow" style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
           {icon} Legal & Safety
         </div>
-        <h1 style={{ fontSize: '2.5rem', margin: '10px 0' }}>{title}</h1>
-        <p style={{ color: 'var(--muted)', fontSize: '14px' }}>Last Updated: {lastUpdated}</p>
+        <h1 style={{ fontSize: '2.5rem', margin: '10px 0', textAlign: 'right' }}>{title}</h1>
+        <p style={{ color: 'var(--muted)', fontSize: '14px', textAlign: 'right' }}>Last Updated: {lastUpdated}</p>
       </div>
+      
       <div className="legal-content" style={{ lineHeight: '1.8', fontSize: '16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {children}
       </div>
