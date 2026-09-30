@@ -2,8 +2,33 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Nagrik Nova - Civic Intelligence</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Nagrik Nova</title>
+    
+    <!-- 🌍 ULTIMATE GOOGLE TRANSLATE BANNER KILLER -->
+    <style>
+      /* Hide the iframe banner */
+      .goog-te-banner-frame.skiptranslate, 
+      .goog-te-banner-frame { 
+        display: none !important; 
+      }
+      /* Force body and HTML back to the top */
+      html, body { 
+        top: 0px !important; 
+        position: static !important; 
+      }
+      /* Hide hover tooltips */
+      #goog-gt-tt, 
+      .goog-te-balloon-frame { 
+        display: none !important; 
+      }
+      /* Remove highlight colors */
+      .goog-text-highlight { 
+        background: none !important; 
+        box-shadow: none !important; 
+        border: none !important; 
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
@@ -20,5 +45,17 @@
       }
     </script>
     <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+    
+    <!-- JavaScript fallback to strip the 40px gap if Google sneaks it in -->
+    <script>
+      setInterval(function() {
+        if (document.body && document.body.style.top === '40px') {
+          document.body.style.top = '0px';
+        }
+        if (document.documentElement && document.documentElement.style.top === '40px') {
+          document.documentElement.style.top = '0px';
+        }
+      }, 500);
+    </script>
   </body>
 </html>
