@@ -57,7 +57,6 @@ api.interceptors.request.use((c) => {
   return c;
 });
 
-// Broadcast a global event when the backend rejects the token
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -181,7 +180,7 @@ function App() {
           <Route path="/rewards" element={<Require user={auth.user}><Rewards user={auth.user} /></Require>} />
           <Route path="/issues/:id" element={<Require user={auth.user}><Detail user={auth.user} /></Require>} />
           <Route path="/citizen-map" element={<Require user={auth.user}><CitizenMap /></Require>} />
-          <Route path="/dashboard" element={<Require user={auth.user}><Dashboard user={auth.user} /></Require>} />
+          <Route path="/dashboard" element={<Require user={auth.user}><Dashboard user={auth.user} auth={auth} /></Require>} />
           <Route path="/settings" element={<Require user={auth.user}><AccountSettings user={auth.user} auth={auth} /></Require>} />
           
           <Route path="/privacy" element={<PrivacyPolicy />} />
@@ -270,6 +269,13 @@ function Nav({ auth }) {
         
         {auth.user ? (
           <div className="nav-user" style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+            
+            {/* THE FIX: Nova Coin Balance Display */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#f59e0b', fontWeight: 'bold', background: 'rgba(245, 158, 11, 0.1)', padding: '6px 12px', borderRadius: '20px' }} title="Nova Coins">
+              <Sparkles size={15} />
+              {auth.user.nova_coins || 0}
+            </div>
+
             <span className="user-dot">
               {auth.user.name
                 .split(" ")
@@ -690,7 +696,7 @@ function IssueCard({ issue }) {
   );
 }
 
-function Dashboard({ user }) {
+function Dashboard({ user, auth }) {
   const nav = useNavigate(),
     [issues, setIssues] = useState([]),
     [data, setData] = useState({
@@ -698,7 +704,9 @@ function Dashboard({ user }) {
       description: "",
       state: "",
       city: "",
-      street: ""
+      street: "",
+      submitted_by: user.id || user._id,
+      submitter_role: user.role
     }),
     [voiceResetKey, setVoiceResetKey] = useState(0),
     [msg, setMsg] = useState(""),
@@ -712,10 +720,10 @@ function Dashboard({ user }) {
       .get("/issues")
       .then((r) =>
         setIssues(
-          r.data.filter((i) => i.submitted_by === user.id)
+          r.data.filter((i) => i.submitted_by === (user.id || user._id))
         ),
       );
-  }, [user.id]);
+  }, [user.id, user._id]);
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -747,7 +755,6 @@ function Dashboard({ user }) {
         ctx.drawImage(img, 0, 0, width, height);
 
         const compressedBase64 = canvas.toDataURL("image/jpeg", 0.7);
-
         setImagePreview(compressedBase64);
       };
     };
@@ -761,13 +768,11 @@ function Dashboard({ user }) {
 
     try {
       const response = await api.post("/ai/scan", { imageBase64: imagePreview });
-
       setData({
         ...data,
         title: response.data.title || data.title,
         description: response.data.description || data.description
       });
-
     } catch (error) {
       console.error("Vision API Error:", error);
       alert("Nova AI couldn't process this image right now. Please enter the details manually.");
@@ -779,6 +784,7 @@ function Dashboard({ user }) {
   const post = async (e) => {
     e.preventDefault();
     setErr("");
+    setMsg("");
 
     try {
       const r = await api.post("/issues", data);
@@ -786,6 +792,7 @@ function Dashboard({ user }) {
       setIssues((prev) => [r.data.issue, ...prev]);
 
       setData({
+        ...data,
         title: "",
         description: "",
         state: "",
@@ -793,18 +800,47 @@ function Dashboard({ user }) {
         street: "",
       });
 
-      setMsg("Your issue is now visible to the Nagrik Nova network.");
+      // Update Nova Coins locally if rewarded by backend
+      if (r.data.new_coins) {
+        auth.updateUser({ ...user, nova_coins: r.data.new_coins });
+        setMsg(`Report accepted! You earned +10 Nova Coins. (Total: ${r.data.new_coins})`);
+      } else {
+        setMsg("Your issue is now visible to the Nagrik Nova network.");
+      }
+
       setVoiceResetKey((prev) => prev + 1);
     } catch (e) {
-      setErr(
-        e.response?.data?.message ||
-        "Could not submit your report."
-      );
+      const resData = e.response?.data;
+      
+      // Catch bans and strikes perfectly
+      if (e.response?.status === 403 || resData?.isBanned) {
+        auth.updateUser({ ...user, is_banned: true, strikes: 3 });
+      } else if (resData?.strikes) {
+        auth.updateUser({ ...user, strikes: resData.strikes });
+        setErr(`Warning: ${resData.message}`);
+      } else {
+        setErr(resData?.message || "Could not submit your report.");
+      }
     }
   };
   
   if (!["citizen", "ngo"].includes(user.role)) return <Navigate to="/issues" />;
   
+  // THE FIX: Secure Red Ban Screen locks out the Dashboard
+  if (user.is_banned) {
+    return (
+      <section className="page dashboard">
+        <div style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '50px 20px', borderRadius: '12px', textAlign: 'center', border: '1px solid rgba(239, 68, 68, 0.5)' }}>
+          <CircleAlert size={64} color="#ef4444" style={{ margin: '0 auto 20px' }} />
+          <h1 style={{ color: '#ef4444', marginBottom: '10px' }}>Account Suspended</h1>
+          <p style={{ color: 'var(--muted)', maxWidth: '500px', margin: '0 auto', lineHeight: '1.6' }}>
+            Your account has been permanently suspended for submitting false, spam, or duplicate civic issues 3 or more times. Contact support to appeal.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="page dashboard">
       <div className="page-head">
@@ -2711,7 +2747,7 @@ function Analysis({ issue }) {
                   <div className="organization-icon">
 
                     {role === "university" ? (
-                      <Building2 size={22} />
+                      <Building.2 size={22} />
                     ) : (
                       <Leaf size={22} />
                     )}
