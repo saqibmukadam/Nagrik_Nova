@@ -1246,3 +1246,25 @@ header nav {
      bottom: 90px !important;
   }
 }
+
+/* ------------------------------- */
+  /* FIX: PUSH CHAT WIDGET UP        */
+  /* ------------------------------- */
+  button[class*="chat"], 
+  div[class*="chat-toggle"], 
+  div[class*="chat-bubble"],
+  div[class*="chat-fab"],
+  div[class*="chat-button"],
+  .chat-widget {
+    bottom: 100px !important; /* Pushes it above the 70px nav bar */
+    right: 20px !important;
+    z-index: 9998 !important; /* Keeps it under the nav bar if they ever cross */
+  }
+  
+  /* Also push the open chat window up so the nav bar doesn't block the text input */
+  div[class*="chat-window"], 
+  div[class*="chat-container"], 
+  div[class*="chatbot-window"] {
+    bottom: 160px !important;
+    max-height: calc(100vh - 250px) !important;
+  }
