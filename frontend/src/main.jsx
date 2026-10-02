@@ -1214,6 +1214,9 @@ function Detail({ user }) {
   const [pledgeText, setPledgeText] = useState("");
   const [showPledgeForm, setShowPledgeForm] = useState(false);
 
+  // NEW: Create a reference to scroll down to
+  const analysisRef = React.useRef(null);
+
   useEffect(() => {
     api
       .get("/issues/" + id)
@@ -1269,6 +1272,12 @@ function Detail({ user }) {
       } catch (matchError) {
         console.error("Organization matching failed:", matchError);
       }
+
+      // NEW: Smooth scroll down to the analysis section after React renders it
+      setTimeout(() => {
+        analysisRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+
     } catch (e) {
       setErr(e.response?.data?.message || "Analysis could not be completed.");
     } finally {
@@ -1352,7 +1361,8 @@ function Detail({ user }) {
             ) : (
               <BrainCircuit size={18} />
             )}{" "}
-            {busy ? "Analyzing signal…" : "Analyze with AI"}
+            {/* CHANGED: Rename button to Analyze with Nova AI */}
+            {busy ? "Analyzing signal…" : "Analyze with Nova AI"}
           </button>
         )}
       </div>
@@ -1422,21 +1432,24 @@ function Detail({ user }) {
         )}
       </div>
 
-      {issue.analyzed && issue.aiAnalysis ? (
-        <Analysis issue={issue} />
-      ) : (
-        <div className="await">
-          <BrainCircuit />
-          <div>
-            <h3>Waiting for civic intelligence</h3>
-            <p>
-              Once an administrator analyzes this issue, its
-              priority, solution idea and likely partners will
-              appear here.
-            </p>
+      {/* NEW: Attached the auto-scroll reference to this container with an 80px top margin to clear the fixed nav bar */}
+      <div ref={analysisRef} style={{ scrollMarginTop: '80px' }}>
+        {issue.analyzed && issue.aiAnalysis ? (
+          <Analysis issue={issue} />
+        ) : (
+          <div className="await">
+            <BrainCircuit />
+            <div>
+              <h3>Waiting for civic intelligence</h3>
+              <p>
+                Once an administrator analyzes this issue, its
+                priority, solution idea and likely partners will
+                appear here.
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {err && <div className="error">{err}</div>}
     </section>
