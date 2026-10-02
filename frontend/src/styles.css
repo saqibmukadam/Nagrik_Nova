@@ -1531,10 +1531,13 @@ body {
 
 /* The dynamic shrunk state applied via React */
 .chat-widget-toggle.scrolled {
+  width: 50px;
+  min-width: 50px;
   max-width: 50px;
   padding: 0;
   border-radius: 50%;
   gap: 0;
+  justify-content: center;
 }
 
 .chat-widget-toggle.scrolled .chat-text {
