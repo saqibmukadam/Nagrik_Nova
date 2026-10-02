@@ -1214,10 +1214,6 @@ function Detail({ user }) {
   const [pledgeText, setPledgeText] = useState("");
   const [showPledgeForm, setShowPledgeForm] = useState(false);
 
-  // NEW: State to guarantee the DOM is ready before scrolling
-  const [shouldScroll, setShouldScroll] = useState(false);
-  const analysisRef = React.useRef(null);
-
   useEffect(() => {
     api
       .get("/issues/" + id)
@@ -1248,22 +1244,14 @@ function Detail({ user }) {
     }
   }, [issue, id, user]);
 
-  // NEW: This effect listens for the trigger, waits for the paint, and then smooth scrolls
-  useEffect(() => {
-    if (shouldScroll && issue && issue.analyzed) {
-      setTimeout(() => {
-        analysisRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        setShouldScroll(false); // Reset so it doesn't keep scrolling
-      }, 150);
-    }
-  }, [shouldScroll, issue]);
-
   const analyze = async () => {
     setBusy(true);
     setErr("");
 
     try {
       const r = await api.post(`/issues/${id}/analyze`);
+      
+      // Optimistically update the UI so it starts drawing the analysis immediately
       setIssue({
         ...r.data.issue,
         aiAnalysis: r.data.analysis,
@@ -1284,8 +1272,14 @@ function Detail({ user }) {
         console.error("Organization matching failed:", matchError);
       }
 
-      // Tell our useEffect that it is now safe to scroll
-      setShouldScroll(true);
+      // THE FIX: Bypass React entirely and forcefully scroll the physical DOM 
+      // after a 500ms delay to guarantee the AI text has been painted to the screen.
+      setTimeout(() => {
+        const analysisSection = document.getElementById("analysis-section");
+        if (analysisSection) {
+          analysisSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 500);
 
     } catch (e) {
       setErr(e.response?.data?.message || "Analysis could not be completed.");
@@ -1440,7 +1434,8 @@ function Detail({ user }) {
         )}
       </div>
 
-      <div ref={analysisRef} style={{ scrollMarginTop: '80px' }}>
+      {/* THE FIX: Hardcoded ID for the auto-scroller to grab onto */}
+      <div id="analysis-section" style={{ scrollMarginTop: '80px' }}>
         {issue.analyzed && issue.aiAnalysis ? (
           <Analysis issue={issue} />
         ) : (
