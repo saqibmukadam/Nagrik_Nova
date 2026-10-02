@@ -1214,7 +1214,8 @@ function Detail({ user }) {
   const [pledgeText, setPledgeText] = useState("");
   const [showPledgeForm, setShowPledgeForm] = useState(false);
 
-  // NEW: Create a reference to scroll down to
+  // NEW: State to guarantee the DOM is ready before scrolling
+  const [shouldScroll, setShouldScroll] = useState(false);
   const analysisRef = React.useRef(null);
 
   useEffect(() => {
@@ -1247,6 +1248,16 @@ function Detail({ user }) {
     }
   }, [issue, id, user]);
 
+  // NEW: This effect listens for the trigger, waits for the paint, and then smooth scrolls
+  useEffect(() => {
+    if (shouldScroll && issue && issue.analyzed) {
+      setTimeout(() => {
+        analysisRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setShouldScroll(false); // Reset so it doesn't keep scrolling
+      }, 150);
+    }
+  }, [shouldScroll, issue]);
+
   const analyze = async () => {
     setBusy(true);
     setErr("");
@@ -1273,10 +1284,8 @@ function Detail({ user }) {
         console.error("Organization matching failed:", matchError);
       }
 
-      // NEW: Smooth scroll down to the analysis section after React renders it
-      setTimeout(() => {
-        analysisRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 300);
+      // Tell our useEffect that it is now safe to scroll
+      setShouldScroll(true);
 
     } catch (e) {
       setErr(e.response?.data?.message || "Analysis could not be completed.");
@@ -1361,7 +1370,6 @@ function Detail({ user }) {
             ) : (
               <BrainCircuit size={18} />
             )}{" "}
-            {/* CHANGED: Rename button to Analyze with Nova AI */}
             {busy ? "Analyzing signal…" : "Analyze with Nova AI"}
           </button>
         )}
@@ -1432,7 +1440,6 @@ function Detail({ user }) {
         )}
       </div>
 
-      {/* NEW: Attached the auto-scroll reference to this container with an 80px top margin to clear the fixed nav bar */}
       <div ref={analysisRef} style={{ scrollMarginTop: '80px' }}>
         {issue.analyzed && issue.aiAnalysis ? (
           <Analysis issue={issue} />
