@@ -304,7 +304,6 @@ function Nav({ auth }) {
   return (
     <header>
       <div className="mobile-only mobile-top-left" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-        <DarkModeToggle />
         {auth.user && auth.user.role === "admin" && (
           <NavLink 
             to="/vr-map" 
@@ -392,8 +391,6 @@ function Nav({ auth }) {
               </NavLink>
             </>
           )}
-          
-          <DarkModeToggle />
           
           {auth.user ? (
             <div className="nav-user" style={{ display: "flex", alignItems: "center", gap: "15px" }}>
