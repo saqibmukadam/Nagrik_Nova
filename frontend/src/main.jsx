@@ -573,15 +573,20 @@ function AuthShell({ title, sub, children }) {
 function Login({ auth }) {
   const nav = useNavigate(),
     [data, setData] = useState({ email: "", password: "" }),
-    [err, setErr] = useState("");
+    [err, setErr] = useState(""),
+    [loading, setLoading] = useState(false); // NEW: Loading state
     
   const go = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setErr("");
+    
     try {
       auth.signIn((await api.post("/auth/login", { ...data, email: data.email.trim().toLowerCase() })).data);
       nav("/issues");
     } catch (e) {
       setErr(e.response?.data?.message || "Could not sign in.");
+      setLoading(false); // Reset loading only if there's an error (success navigates away)
     }
   };
   
@@ -604,8 +609,17 @@ function Login({ auth }) {
           onChange={(e) => setData({ ...data, password: e.target.value })}
         />
         {err && <div className="error">{err}</div>}
-        <button className="btn full">
-          Sign in <ArrowRight size={17} />
+        <button className="btn full" disabled={loading}>
+          {loading ? (
+            <>
+              <LoaderCircle className="spin" size={17} style={{ marginRight: '8px' }} /> 
+              Signing in...
+            </>
+          ) : (
+            <>
+              Sign in <ArrowRight size={17} />
+            </>
+          )}
         </button>
         <p className="form-foot">
           New here? <Link to="/register">Create an account</Link>
@@ -638,17 +652,22 @@ const roleFields = {
 function Register({ auth }) {
   const nav = useNavigate(),
     [d, setD] = useState({ role: "citizen" }),
-    [err, setErr] = useState("");
+    [err, setErr] = useState(""),
+    [loading, setLoading] = useState(false); // NEW: Loading state
     
   const set = (k, v) => setD({ ...d, [k]: v });
   
   const submit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setErr("");
+    
     try {
       auth.signIn((await api.post("/auth/register", d)).data);
       nav("/issues");
     } catch (e) {
       setErr(e.response?.data?.message || "Could not create account.");
+      setLoading(false);
     }
   };
   
@@ -709,8 +728,17 @@ function Register({ auth }) {
           />
         ))}
         {err && <div className="error">{err}</div>}
-        <button className="btn full">
-          Create my profile <ArrowRight size={17} />
+        <button className="btn full" disabled={loading}>
+          {loading ? (
+            <>
+              <LoaderCircle className="spin" size={17} style={{ marginRight: '8px' }} /> 
+              Creating profile...
+            </>
+          ) : (
+            <>
+              Create my profile <ArrowRight size={17} />
+            </>
+          )}
         </button>
         <p className="form-foot">
           Already a member? <Link to="/login">Sign in</Link>
@@ -719,7 +747,6 @@ function Register({ auth }) {
     </AuthShell>
   );
 }
-
 function Field({ label, type = "text", ...props }) {
   const [show, setShow] = useState(false);
   const isPassword = type === "password";
