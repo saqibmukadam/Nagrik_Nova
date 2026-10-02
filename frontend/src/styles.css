@@ -111,7 +111,7 @@ textarea{height:115px;resize:vertical}
 .priority.low{background:#e2edf4;color:#397291}
 .pending{color:#747873;background:#f0f0eb}
 .issue h3{font-size:17px;line-height:1.35;margin:18px 0 9px}
-.issue>p{font-size:12px;line-height:1.65;color:var(--muted);margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.issue>p{font-size:12px;line-height:1.65;color:var(--muted);margin:0;display:-webkit-box;line-clamp:3;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .issue-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:auto;padding-top:20px;color:var(--muted);font-size:11px;font-weight:700}
 .issue-bottom>span:first-child{display:flex;gap:5px;align-items:center}
 .arrow-circle{width:29px;height:29px;border-radius:50%;background:#e5efdc;color:var(--green);display:grid;place-items:center}
@@ -1475,5 +1475,17 @@ body {
   .organization-action button {
     width: 100%;
     justify-content: center;
+  }
+}
+
+/* ========================================================= */
+/* 🥽 VR COMMAND CENTER RESPONSIVE RULES                     */
+/* ========================================================= */
+
+/* Hide the VR Button on desktop/PC platforms */
+@media (min-width: 769px) {
+  #VRButton, 
+  button:contains("Enter VR Mode") {
+    display: none !important;
   }
 }

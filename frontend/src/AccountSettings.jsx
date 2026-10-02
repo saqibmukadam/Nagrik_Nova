@@ -358,15 +358,20 @@ export default function AccountSettings({ user, auth }) {
             </p>
           </div>
 
-          <h2>Your Nova Balance</h2>
-          <div style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '28px', fontWeight: 'bold', color: '#f59e0b', marginBottom: '5px' }}>
-              <Sparkles size={24} /> {user?.nova_coins || 0}
-            </div>
-            <p style={{ margin: 0, fontSize: '13px', color: '#d97706' }}>
-              Submit accurate civic reports to earn more coins. Redeem them in the Rewards tab.
-            </p>
-          </div>
+          {/* Hide the Nova Balance banner for Admins since they do not use the rewards system */}
+          {user?.role !== "admin" && (
+            <>
+              <h2>Your Nova Balance</h2>
+              <div style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '28px', fontWeight: 'bold', color: '#f59e0b', marginBottom: '5px' }}>
+                  <Sparkles size={24} /> {user?.nova_coins || 0}
+                </div>
+                <p style={{ margin: 0, fontSize: '13px', color: '#d97706' }}>
+                  Submit accurate civic reports to earn more coins. Redeem them in the Rewards tab.
+                </p>
+              </div>
+            </>
+          )}
         </aside>
 
       </div>
