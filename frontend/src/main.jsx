@@ -1,7 +1,7 @@
 import ARReporter from "./ARReporter";
 import VRCommandCenter from "./VRCommandCenter";
 import VoiceInput from "./VoiceInput.jsx";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import AIChatWidget from "./AIChatWidget.jsx";
 import IssueScanner from "./IssueScanner.jsx";
 import { createRoot } from "react-dom/client";
@@ -42,7 +42,6 @@ import {
   Wrench,
   Eye,
   EyeOff,
-  // INSTAGRAM NAV ICONS
   Home as HomeIcon,
   Map as MapIcon,
   PlusSquare,
@@ -1214,6 +1213,10 @@ function Detail({ user }) {
   const [pledgeText, setPledgeText] = useState("");
   const [showPledgeForm, setShowPledgeForm] = useState(false);
 
+  // NEW: Robust scrolling state and ref
+  const analysisRef = useRef(null);
+  const [justAnalyzed, setJustAnalyzed] = useState(false);
+
   useEffect(() => {
     api
       .get("/issues/" + id)
@@ -1244,14 +1247,26 @@ function Detail({ user }) {
     }
   }, [issue, id, user]);
 
+  // THE FIX: Listen for 'busy' to turn false and 'justAnalyzed' to be true.
+  // This guarantees BOTH API calls are 100% finished before we attempt to scroll.
+  useEffect(() => {
+    if (justAnalyzed && !busy && issue?.analyzed) {
+      // Add a tiny 100ms delay just to let React paint the final DOM height
+      setTimeout(() => {
+        analysisRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+      setJustAnalyzed(false); // Reset so it doesn't fire again
+    }
+  }, [busy, justAnalyzed, issue]);
+
   const analyze = async () => {
     setBusy(true);
     setErr("");
+    setJustAnalyzed(true); // Flag that we want to scroll once finished
 
     try {
       const r = await api.post(`/issues/${id}/analyze`);
       
-      // Optimistically update the UI so it starts drawing the analysis immediately
       setIssue({
         ...r.data.issue,
         aiAnalysis: r.data.analysis,
@@ -1272,19 +1287,11 @@ function Detail({ user }) {
         console.error("Organization matching failed:", matchError);
       }
 
-      // THE FIX: Bypass React entirely and forcefully scroll the physical DOM 
-      // after a 500ms delay to guarantee the AI text has been painted to the screen.
-      setTimeout(() => {
-        const analysisSection = document.getElementById("analysis-section");
-        if (analysisSection) {
-          analysisSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 500);
-
     } catch (e) {
       setErr(e.response?.data?.message || "Analysis could not be completed.");
     } finally {
-      setBusy(false);
+      // THIS is what will safely trigger our scrolling useEffect!
+      setBusy(false); 
     }
   };
 
@@ -1434,8 +1441,7 @@ function Detail({ user }) {
         )}
       </div>
 
-      {/* THE FIX: Hardcoded ID for the auto-scroller to grab onto */}
-      <div id="analysis-section" style={{ scrollMarginTop: '80px' }}>
+      <div ref={analysisRef} id="analysis-section" style={{ scrollMarginTop: '80px' }}>
         {issue.analyzed && issue.aiAnalysis ? (
           <Analysis issue={issue} />
         ) : (
@@ -2650,7 +2656,6 @@ function Empty({ text = "No issues have been shared yet." }) {
     </div>
   );
 }
-
 
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
