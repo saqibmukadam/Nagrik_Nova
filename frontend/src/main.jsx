@@ -1876,22 +1876,15 @@ function AdminDashboard() {
     try {
       setLoading(true);
       setError("");
-
-      const [issuesResponse, challengesResponse] =
-        await Promise.all([
-          api.get("/issues"),
-          api.get("/challenges"),
-        ]);
-
+      const [issuesResponse, challengesResponse] = await Promise.all([
+        api.get("/issues"),
+        api.get("/challenges"),
+      ]);
       setIssues(issuesResponse.data || []);
       setChallenges(challengesResponse.data || []);
     } catch (err) {
       console.error(err);
-
-      setError(
-        err.response?.data?.message ||
-        "Could not load admin dashboard."
-      );
+      setError(err.response?.data?.message || "Could not load admin dashboard.");
     } finally {
       setLoading(false);
     }
@@ -1906,19 +1899,12 @@ function AdminDashboard() {
       setBusy(`generate-${issueId}`);
       setError("");
       setSuccess("");
-
       await api.post(`/challenges/from-issue/${issueId}`);
-
       setSuccess("Challenge generated successfully.");
-
       await loadData();
     } catch (err) {
       console.error(err);
-
-      setError(
-        err.response?.data?.message ||
-        "Could not generate challenge."
-      );
+      setError(err.response?.data?.message || "Could not generate challenge.");
     } finally {
       setBusy("");
     }
@@ -1928,1108 +1914,287 @@ function AdminDashboard() {
     try {
       setBusy(`open-${challengeId}`);
       setError("");
-
-      const response = await api.get(
-        `/challenges/${challengeId}`
-      );
-
+      const response = await api.get(`/challenges/${challengeId}`);
       setSelectedChallenge(response.data);
     } catch (err) {
       console.error(err);
-
-      setError(
-        err.response?.data?.message ||
-        "Could not load challenge details."
-      );
+      setError(err.response?.data?.message || "Could not load challenge details.");
     } finally {
       setBusy("");
     }
   };
 
-  const assignOrganization = async (
-    challengeId,
-    organizationId
-  ) => {
+  const assignOrganization = async (challengeId, organizationId) => {
     if (!organizationId) {
       setError("Please select a university or industry.");
       return;
     }
-
     try {
       setBusy(`assign-${organizationId}`);
       setError("");
       setSuccess("");
-
-      await api.post(
-        `/challenges/${challengeId}/assign`,
-        {
-          organization_user_id: organizationId,
-        }
-      );
-
-      setSuccess(
-        "Challenge assigned successfully."
-      );
-
+      await api.post(`/challenges/${challengeId}/assign`, {
+        organization_user_id: organizationId,
+      });
+      setSuccess("Challenge assigned successfully.");
       await openChallenge(challengeId);
       await loadData();
     } catch (err) {
       console.error(err);
-
-      setError(
-        err.response?.data?.message ||
-        "Could not assign organization."
-      );
+      setError(err.response?.data?.message || "Could not assign organization.");
     } finally {
       setBusy("");
     }
   };
 
-  if (loading) {
-    return <Loading />;
-  }
+  if (loading) return <Loading />;
 
   return (
-    <section className="page">
-      <div className="detail-top">
+    <section className="page admin-page">
+      <div className="page-head" style={{ marginBottom: '40px' }}>
         <div>
-          <p className="eyebrow">
-            ADMIN CONTROL CENTER
-          </p>
-
-          <h1>Civic Challenge Management</h1>
-
-          <p className="lead">
-            Turn analyzed civic problems into practical
-            challenges and connect them with organizations
-            that can work on them.
-          </p>
+          <div className="eyebrow"><ShieldAlert size={15} /> ADMIN CONTROL CENTER</div>
+          <h1>Civic Challenge <em>Management</em></h1>
+          <p>Turn analyzed civic problems into practical challenges and connect them with organizations.</p>
         </div>
       </div>
 
-      {error && (
-        <div className="error">
-          {error}
-        </div>
-      )}
+      {error && <div className="error" style={{ marginBottom: '20px' }}>{error}</div>}
+      {success && <div className="success" style={{ marginBottom: '20px' }}>{success}</div>}
 
-      {success && (
-        <div className="success">
-          {success}
-        </div>
-      )}
-
-      <div className="admin-stats">
-        <div className="stat-card">
+      {/* FIXED: Admin Stats Grid */}
+      <div className="admin-stats-grid">
+        <div className="admin-stat-card">
           <span>Complaints</span>
           <strong>{issues.length}</strong>
         </div>
-
-        <div className="stat-card">
+        <div className="admin-stat-card">
           <span>Analyzed</span>
-          <strong>
-            {
-              issues.filter(
-                (i) => i.analyzed
-              ).length
-            }
-          </strong>
+          <strong>{issues.filter((i) => i.analyzed).length}</strong>
         </div>
-
-        <div className="stat-card">
+        <div className="admin-stat-card">
           <span>Challenges</span>
-          <strong>
-            {challenges.length}
-          </strong>
+          <strong>{challenges.length}</strong>
         </div>
-
-        <div className="stat-card">
+        <div className="admin-stat-card">
           <span>Active</span>
-          <strong>
-            {
-              challenges.filter(
-                (c) =>
-                  c.status === "Open" ||
-                  c.status === "In Progress"
-              ).length
-            }
-          </strong>
+          <strong>{challenges.filter((c) => c.status === "Open" || c.status === "In Progress").length}</strong>
         </div>
       </div>
 
+      {/* STEP 1: Generate Challenges */}
       <section className="admin-section">
         <div className="section-heading">
-          <div>
-            <p className="eyebrow">
-              STEP 1
-            </p>
-
-            <h2>
-              Turn Problems Into Challenges
-            </h2>
-          </div>
+          <div className="eyebrow" style={{ color: '#3b82f6' }}>STEP 1</div>
+          <h2>Turn Problems Into Challenges</h2>
         </div>
 
-        <div className="admin-list">
-          {issues
-            .filter((issue) => issue.analyzed)
-            .map((issue) => {
-              const challenge =
-                challenges.find(
-                  (c) =>
-                    c.issue_id === issue.id
-                );
-
-              return (
-                <div
-                  className="admin-card"
-                  key={issue.id}
-                >
-                  <div className="admin-card-main">
-                    <div className="issue-meta">
-                      <span className="role">
-                        {issue.submitter_role}
-                      </span>
-
-                      <span
-                        className={`priority ${issue.priority?.toLowerCase()}`}
-                      >
-                        {issue.priority}
-                      </span>
-                    </div>
-
-                    <h3>
-                      {issue.title}
-                    </h3>
-
-                    <p>
-                      {issue.description}
-                    </p>
-
-                    <span className="location">
-                      <MapPin size={15} />
-
-                      {issue.street},{" "}
-                      {issue.city},{" "}
-                      {issue.state}
-                    </span>
-                  </div>
-
-                  <div className="admin-card-action">
-                    {challenge ? (
-                      <div className="success-badge">
-                        <CheckCircle2
-                          size={16}
-                        />
-
-                        Challenge generated
-                      </div>
-                    ) : (
-                      <button
-                        className="btn analyze"
-                        disabled={
-                          busy ===
-                          `generate-${issue.id}`
-                        }
-                        onClick={() =>
-                          generateChallenge(
-                            issue.id
-                          )
-                        }
-                      >
-                        {busy ===
-                          `generate-${issue.id}` ? (
-                          <LoaderCircle
-                            className="spin"
-                            size={17}
-                          />
-                        ) : (
-                          <Sparkles
-                            size={17}
-                          />
-                        )}
-
-                        {busy ===
-                          `generate-${issue.id}`
-                          ? "Generating..."
-                          : "Generate Challenge"}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-
-          {!issues.filter(
-            (i) => i.analyzed
-          ).length && <Empty />}
-        </div>
-      </section>
-
-      <section className="admin-section">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">
-              STEP 2
-            </p>
-
-            <h2>
-              Assign Challenges
-            </h2>
-          </div>
-        </div>
-
-        <div className="admin-list">
-          {challenges.map(
-            (challenge) => (
-              <div
-                className="admin-card challenge-card"
-                key={challenge.id}
-              >
-                <div className="admin-card-main">
-                  <div className="issue-meta">
-                    <span className="role">
-                      {challenge.domain ||
-                        "Civic"}
-                    </span>
-
-                    <span className="pending">
-                      {challenge.status}
-                    </span>
-                  </div>
-
-                  <h3>
-                    {challenge.title}
-                  </h3>
-
-                  <p>
-                    {challenge.problem_statement ||
-                      challenge.description}
-                  </p>
-
-                  {challenge.expected_outcome && (
-                    <div className="challenge-detail">
-                      <strong>
-                        Expected outcome
-                      </strong>
-
-                      <p>
-                        {
-                          challenge.expected_outcome
-                        }
-                      </p>
-                    </div>
-                  )}
-
-                  {Array.isArray(
-                    challenge.required_expertise
-                  ) &&
-                    challenge
-                      .required_expertise
-                      .length > 0 && (
-                      <div className="tag-list">
-                        {challenge.required_expertise.map(
-                          (
-                            item,
-                            index
-                          ) => (
-                            <span
-                              key={
-                                index
-                              }
-                            >
-                              {item}
-                            </span>
-                          )
-                        )}
-                      </div>
-                    )}
-
-                  {selectedChallenge?.challenge
-                    ?.id === challenge.id && (
-                      <div className="assignment-panel">
-                        <h4>
-                          Recommended organizations
-                        </h4>
-
-                        {selectedChallenge.matches
-                          ?.length ? (
-                          <div className="organization-list">
-                            {selectedChallenge.matches.map(
-                              (match) => {
-                                const organization =
-                                  match.users;
-
-                                if (
-                                  !organization
-                                )
-                                  return null;
-
-                                const details =
-                                  organization.role ===
-                                    "university"
-                                    ? organization.university_details
-                                    : organization.industry_details;
-
-                                return (
-                                  <div
-                                    className="organization-row"
-                                    key={
-                                      match.id
-                                    }
-                                  >
-                                    <div className="organization-info">
-                                      <div className="partner-icon">
-                                        {organization.role ===
-                                          "university" ? (
-                                          <Building2
-                                            size={
-                                              17
-                                            }
-                                          />
-                                        ) : (
-                                          <Users
-                                            size={
-                                              17
-                                            }
-                                          />
-                                        )}
-                                      </div>
-
-                                      <div>
-                                        <span className="role">
-                                          {
-                                            organization.role
-                                          }
-                                        </span>
-
-                                        <h4>
-                                          {
-                                            organization.name
-                                          }
-                                        </h4>
-
-                                        <p>
-                                          {Array.isArray(
-                                            match.matched_expertise
-                                          )
-                                            ? match.matched_expertise.join(
-                                              ", "
-                                            )
-                                            : "Relevant civic capabilities"}
-                                        </p>
-
-                                        {details
-                                          ?.city && (
-                                            <small>
-                                              {
-                                                details.city
-                                              }
-                                              ,{" "}
-                                              {
-                                                details.state
-                                              }
-                                            </small>
-                                          )}
-                                      </div>
-                                    </div>
-
-                                    <div className="organization-action">
-                                      {match.status ===
-                                        "Assigned" ? (
-                                        <span className="assigned-badge">
-                                          <CheckCircle2
-                                            size={
-                                              15
-                                            }
-                                          />
-                                          Assigned
-                                        </span>
-                                      ) : (
-                                        <button
-                                          className="btn small"
-                                          disabled={
-                                            busy ===
-                                            `assign-${organization.id}`
-                                          }
-                                          onClick={() =>
-                                            assignOrganization(
-                                              challenge.id,
-                                              organization.id
-                                            )
-                                          }
-                                        >
-                                          {busy ===
-                                            `assign-${organization.id}` ? (
-                                            <LoaderCircle
-                                              className="spin"
-                                              size={
-                                                15
-                                              }
-                                            />
-                                          ) : (
-                                            <ArrowRight
-                                              size={
-                                                15
-                                              }
-                                            />
-                                          )}
-
-                                          Assign
-                                        </button>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              }
-                            )}
-                          </div>
-                        ) : (
-                          <p className="muted">
-                            No matched organizations
-                            found.
-                          </p>
-                        )}
-                      </div>
-                    )}
-                </div>
-
-                <div className="admin-card-action">
-                  <button
-                    className="btn secondary"
-                    disabled={
-                      busy ===
-                      `open-${challenge.id}`
-                    }
-                    onClick={() =>
-                      openChallenge(
-                        challenge.id
-                      )
-                    }
-                  >
-                    {busy ===
-                      `open-${challenge.id}` ? (
-                      <LoaderCircle
-                        className="spin"
-                        size={16}
-                      />
-                    ) : (
-                      <Users size={16} />
-                    )}
-
-                    {selectedChallenge?.challenge
-                      ?.id === challenge.id
-                      ? "Refresh Matches"
-                      : "View Matches"}
-                  </button>
-                </div>
-              </div>
-            )
-          )}
-
-          {!challenges.length && (
-            <Empty />
-          )}
-        </div>
-      </section>
-
-      <section className="admin-section">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">STEP 3</p>
-
-            <h2>Live Challenge Progress</h2>
-
-            <p className="section-description">
-              Track the progress of every organization working on
-              each civic challenge.
-            </p>
-          </div>
-        </div>
-
-        <div className="challenge-progress-list">
-          {challenges.map((challenge) => {
-            const assignments =
-              challenge.assignments?.length
-                ? challenge.assignments
-                : (challenge.matches || []).filter(
-                  (match) => match.status !== "Rejected"
-                );
-
-            const stages = [
-              "Assigned",
-              "Accepted",
-              "In Progress",
-              "Completed",
-            ];
-
+        <div className="admin-grid">
+          {issues.filter((issue) => issue.analyzed).map((issue) => {
+            const challenge = challenges.find((c) => c.issue_id === issue.id);
             return (
-              <div
-                className="challenge-progress-card"
-                key={challenge.id}
-              >
-
-                <div className="challenge-progress-header">
-                  <div>
-                    <span className="challenge-domain">
-                      {challenge.domain || "Civic Challenge"}
-                    </span>
-
-                    <h3>{challenge.title}</h3>
+              <div className="admin-card" key={issue.id}>
+                <div className="admin-card-content">
+                  <div className="issue-meta" style={{ marginBottom: '15px' }}>
+                    <span className="role">{issue.submitter_role}</span>
+                    <span className={`priority ${issue.priority?.toLowerCase()}`}>{issue.priority}</span>
                   </div>
-
-                  <span
-                    className={`challenge-status ${challenge.status
-                      ?.toLowerCase()
-                      .replace(/\s+/g, "-")
-                      }`}
-                  >
-                    {challenge.status || "Open"}
+                  <h3>{issue.title}</h3>
+                  <p>{issue.description}</p>
+                  <span className="location">
+                    <MapPin size={15} /> {issue.street}, {issue.city}
                   </span>
                 </div>
 
-
-                {assignments.length === 0 ? (
-                  <>
-                    <div className="not-assigned">
-                      <Users size={17} />
-
-                      <span>
-                        This challenge has not been assigned
-                        to any organization yet.
-                      </span>
-                    </div>
-
-                    <div className="progress-message">
-                      <CircleAlert size={17} />
-
-                      Assign this challenge to a university
-                      or industry to start tracking progress.
-                    </div>
-                  </>
-                ) : (
-                  <div className="assigned-organizations-list">
-                    {assignments.map((assignment) => {
-                      const status =
-                        assignment.status || "Assigned";
-
-                      const currentIndex =
-                        stages.indexOf(status);
-
-                      const organization =
-                        assignment.users || null;
-
-                      const organizationName =
-                        organization?.name ||
-                        "Assigned organization";
-
-                      return (
-                        <div
-                          className="assigned-organization-progress"
-                          key={assignment.id}
-                        >
-
-                          <div className="assigned-organization">
-                            {organization?.role ===
-                              "industry" ? (
-                              <Users size={17} />
-                            ) : (
-                              <Building2 size={17} />
-                            )}
-
-                            <div>
-                              <span>Assigned to</span>
-
-                              <strong>
-                                {organizationName}
-                              </strong>
-
-                              {organization?.role && (
-                                <small>
-                                  {organization.role}
-                                </small>
-                              )}
-                            </div>
-
-                            <span
-                              className={`challenge-status ${status
-                                .toLowerCase()
-                                .replace(/\s+/g, "-")
-                                }`}
-                            >
-                              {status}
-                            </span>
-                          </div>
-
-                          <div className="challenge-progress">
-                            {stages.map(
-                              (stage, index) => {
-                                const isCompleted =
-                                  currentIndex >= index;
-
-                                const isCurrent =
-                                  currentIndex === index;
-
-                                return (
-                                  <React.Fragment
-                                    key={stage}
-                                  >
-                                    <div
-                                      className={`progress-stage ${isCompleted
-                                        ? "completed"
-                                        : ""
-                                        } ${isCurrent
-                                          ? "current"
-                                          : ""
-                                        }`}
-                                    >
-                                      <div className="progress-circle">
-                                        {isCompleted ? (
-                                          <CheckCircle2
-                                            size={17}
-                                          />
-                                        ) : (
-                                          <span>
-                                            {index + 1}
-                                          </span>
-                                        )}
-                                      </div>
-
-                                      <span>
-                                        {stage}
-                                      </span>
-                                    </div>
-
-                                    {index <
-                                      stages.length -
-                                      1 && (
-                                        <div
-                                          className={`progress-line ${currentIndex >
-                                            index
-                                            ? "completed"
-                                            : ""
-                                            }`}
-                                        />
-                                      )}
-                                  </React.Fragment>
-                                );
-                              }
-                            )}
-                          </div>
-
-                          {status === "Completed" && (
-                            <div className="progress-message completed-message">
-                              <CheckCircle2 size={17} />
-
-                              Challenge completed successfully
-                              by this organization.
-                            </div>
-                          )}
-
-                          {status === "In Progress" && (
-                            <div className="progress-message active-message">
-                              <LoaderCircle size={17} />
-
-                              Organization is currently working
-                              on this challenge.
-                            </div>
-                          )}
-
-                          {status === "Accepted" && (
-                            <div className="progress-message">
-                              <CheckCircle2 size={17} />
-
-                              Organization has accepted the
-                              challenge and is ready to begin work.
-                            </div>
-                          )}
-
-                          {status === "Assigned" && (
-                            <div className="progress-message">
-                              <ArrowRight size={17} />
-
-                              Challenge has been assigned and is
-                              waiting for organization acceptance.
-                            </div>
-                          )}
-
-                          {status === "Rejected" && (
-                            <div className="progress-message rejected-message">
-                              <CircleAlert size={17} />
-
-                              This organization rejected the
-                              challenge.
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                <div className="admin-card-footer">
+                  {challenge ? (
+                    <div className="success-badge"><CheckCircle2 size={16} /> Challenge generated</div>
+                  ) : (
+                    <button className="btn analyze" disabled={busy === `generate-${issue.id}`} onClick={() => generateChallenge(issue.id)}>
+                      {busy === `generate-${issue.id}` ? <LoaderCircle className="spin" size={17} /> : <Sparkles size={17} />}
+                      {busy === `generate-${issue.id}` ? "Generating..." : "Generate Challenge"}
+                    </button>
+                  )}
+                </div>
               </div>
             );
           })}
+          {!issues.filter((i) => i.analyzed).length && <Empty text="No analyzed complaints available." />}
+        </div>
+      </section>
 
-          {!challenges.length && (
-            <div className="empty">
-              <h3>No challenges yet</h3>
+      {/* STEP 2: Assign Challenges */}
+      <section className="admin-section">
+        <div className="section-heading">
+          <div className="eyebrow" style={{ color: '#f59e0b' }}>STEP 2</div>
+          <h2>Assign Challenges</h2>
+        </div>
 
-              <p>
-                Generate a challenge from an analyzed civic
-                complaint to start tracking its progress.
-              </p>
+        <div className="admin-grid">
+          {challenges.map((challenge) => (
+            <div className="admin-card challenge-card" key={challenge.id}>
+              <div className="admin-card-content">
+                <div className="issue-meta" style={{ marginBottom: '15px' }}>
+                  <span className="role">{challenge.domain || "Civic"}</span>
+                  <span className="pending">{challenge.status}</span>
+                </div>
+                <h3>{challenge.title}</h3>
+                <p>{challenge.problem_statement || challenge.description}</p>
+
+                {challenge.expected_outcome && (
+                  <div className="challenge-detail">
+                    <strong>Expected outcome</strong>
+                    <p>{challenge.expected_outcome}</p>
+                  </div>
+                )}
+
+                {/* FIXED: Readable tag formatting */}
+                {Array.isArray(challenge.required_expertise) && challenge.required_expertise.length > 0 && (
+                  <div className="admin-tag-list">
+                    {challenge.required_expertise.map((item, index) => (
+                      <span key={index} className="expert-tag">{item}</span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Assignment Matches Panel */}
+                {selectedChallenge?.challenge?.id === challenge.id && (
+                  <div className="assignment-panel">
+                    <h4>Recommended organizations</h4>
+                    {selectedChallenge.matches?.length ? (
+                      <div className="organization-list">
+                        {selectedChallenge.matches.map((match) => {
+                          const organization = match.users;
+                          if (!organization) return null;
+                          const details = organization.role === "university" ? organization.university_details : organization.industry_details;
+
+                          return (
+                            <div className="organization-row" key={match.id}>
+                              <div className="organization-info">
+                                <div className="partner-icon">
+                                  {organization.role === "university" ? <Building2 size={17} /> : <Users size={17} />}
+                                </div>
+                                <div>
+                                  <span className="role">{organization.role}</span>
+                                  <h4 style={{ margin: '5px 0' }}>{organization.name}</h4>
+                                  <p style={{ fontSize: '13px', color: 'var(--muted)', margin: '0 0 5px 0' }}>
+                                    {Array.isArray(match.matched_expertise) ? match.matched_expertise.join(", ") : "Relevant civic capabilities"}
+                                  </p>
+                                  {details?.city && <small style={{ color: '#10b981' }}>{details.city}, {details.state}</small>}
+                                </div>
+                              </div>
+
+                              <div className="organization-action">
+                                {match.status === "Assigned" ? (
+                                  <span className="assigned-badge"><CheckCircle2 size={15} /> Assigned</span>
+                                ) : (
+                                  <button className="btn small" disabled={busy === `assign-${organization.id}`} onClick={() => assignOrganization(challenge.id, organization.id)}>
+                                    {busy === `assign-${organization.id}` ? <LoaderCircle className="spin" size={15} /> : <ArrowRight size={15} />} Assign
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="muted" style={{ padding: '15px' }}>No matched organizations found.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="admin-card-footer">
+                <button className="btn secondary" disabled={busy === `open-${challenge.id}`} onClick={() => openChallenge(challenge.id)} style={{ width: '100%', justifyContent: 'center' }}>
+                  {busy === `open-${challenge.id}` ? <LoaderCircle className="spin" size={16} /> : <Users size={16} />}
+                  {selectedChallenge?.challenge?.id === challenge.id ? "Refresh Matches" : "View AI Matches"}
+                </button>
+              </div>
             </div>
-          )}
+          ))}
+          {!challenges.length && <Empty text="No challenges generated yet." />}
+        </div>
+      </section>
+
+      {/* STEP 3: Live Progress */}
+      <section className="admin-section">
+        <div className="section-heading">
+          <div className="eyebrow" style={{ color: '#10b981' }}>STEP 3</div>
+          <h2>Live Challenge Progress</h2>
+        </div>
+
+        <div className="admin-grid">
+          {challenges.map((challenge) => {
+            const assignments = challenge.assignments?.length ? challenge.assignments : (challenge.matches || []).filter((match) => match.status !== "Rejected");
+            const stages = ["Assigned", "Accepted", "In Progress", "Completed"];
+
+            return (
+              <div className="admin-card" key={challenge.id}>
+                <div className="admin-card-content">
+                  <div className="issue-meta" style={{ marginBottom: '15px' }}>
+                    <span className="role">{challenge.domain || "Civic Challenge"}</span>
+                    <span className={`challenge-status ${challenge.status?.toLowerCase().replace(/\s+/g, "-")}`}>{challenge.status || "Open"}</span>
+                  </div>
+                  <h3>{challenge.title}</h3>
+
+                  {assignments.length === 0 ? (
+                    <div style={{ background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '12px', marginTop: '20px' }}>
+                      <p style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--muted)', margin: 0 }}><CircleAlert size={16} /> Not assigned to any organization yet.</p>
+                    </div>
+                  ) : (
+                    <div className="assigned-organizations-list" style={{ marginTop: '20px' }}>
+                      {assignments.map((assignment) => {
+                        const status = assignment.status || "Assigned";
+                        const currentIndex = stages.indexOf(status);
+                        const organization = assignment.users || null;
+
+                        return (
+                          <div className="assigned-organization-progress" key={assignment.id} style={{ background: 'rgba(0,0,0,0.2)', padding: '20px', borderRadius: '12px', marginBottom: '15px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '25px' }}>
+                              <div className="partner-icon">{organization?.role === "industry" ? <Users size={17} /> : <Building2 size={17} />}</div>
+                              <div>
+                                <span style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Assigned to</span>
+                                <strong style={{ display: 'block', fontSize: '16px' }}>{organization?.name || "Organization"}</strong>
+                                <small style={{ color: '#10b981' }}>{organization?.role}</small>
+                              </div>
+                            </div>
+
+                            {/* FIXED: Modern Horizontal Stepper */}
+                            <div className="modern-stepper-container" style={{ overflowX: 'auto', paddingBottom: '20px' }}>
+                              <div className="modern-stepper" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minWidth: '300px' }}>
+                                {stages.map((stage, index) => {
+                                  const isCompleted = currentIndex >= index;
+                                  const isCurrent = currentIndex === index;
+                                  return (
+                                    <React.Fragment key={stage}>
+                                      <div className={`step-item ${isCompleted ? "completed" : ""} ${isCurrent ? "current" : ""}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', zIndex: 2 }}>
+                                        <div className="step-circle" style={{ width: '30px', height: '30px', borderRadius: '50%', background: isCompleted ? '#10b981' : isCurrent ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255,255,255,0.05)', border: `2px solid ${isCompleted ? '#10b981' : isCurrent ? '#3b82f6' : 'rgba(255,255,255,0.1)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: isCompleted ? '#fff' : isCurrent ? '#3b82f6' : 'var(--muted)', fontSize: '12px', fontWeight: 'bold' }}>
+                                          {isCompleted ? <CheckCircle2 size={16} /> : index + 1}
+                                        </div>
+                                        <span style={{ position: 'absolute', top: '38px', fontSize: '11px', whiteSpace: 'nowrap', color: isCompleted ? '#10b981' : isCurrent ? '#3b82f6' : 'var(--muted)', fontWeight: isCompleted || isCurrent ? 'bold' : 'normal' }}>
+                                          {stage}
+                                        </span>
+                                      </div>
+                                      {index < stages.length - 1 && (
+                                        <div className="step-connector" style={{ flex: 1, height: '2px', background: currentIndex > index ? '#10b981' : 'rgba(255,255,255,0.1)', margin: '0 8px', position: 'relative', top: '-10px' }} />
+                                      )}
+                                    </React.Fragment>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          {!challenges.length && <Empty text="No challenges generated yet." />}
         </div>
       </section>
     </section>
   );
 }
-
-function Analysis({ issue }) {
-  const analysis = issue.aiAnalysis;
-
-  if (!analysis) {
-    return (
-      <div className="await">
-        <BrainCircuit />
-        <div>
-          <h3>AI analysis is available</h3>
-          <p>
-            Refresh the page or analyze this issue again to view the
-            complete civic analysis.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <section className="analysis">
-
-      <div className="analysis-head">
-        <div className="icon-box green">
-          <BrainCircuit />
-        </div>
-
-        <div>
-          <div className="eyebrow">AI civic brief</div>
-          <h2>
-            From signal to <em>next step.</em>
-          </h2>
-        </div>
-      </div>
-
-      <div className="analysis-grid">
-
-        <div>
-          <small>Domain</small>
-          <strong>{analysis.domain || issue.domain || "Not identified"}</strong>
-        </div>
-
-        <div>
-          <small>Priority</small>
-          <strong>{issue.priority || "Medium"}</strong>
-        </div>
-
-        <div>
-          <small>Urgency</small>
-          <strong>{analysis.urgency || "Not identified"}</strong>
-        </div>
-
-        <div className="wide">
-          <small>Actual problem</small>
-          <p>{analysis.actual_problem}</p>
-        </div>
-
-        <div className="wide">
-          <small>Required expertise</small>
-
-          <div className="tags">
-            {Array.isArray(analysis.required_expertise) &&
-              analysis.required_expertise.map((x, index) => (
-                <span key={index}>{x}</span>
-              ))}
-          </div>
-        </div>
-
-      </div>
-
-      <div className="solution">
-        <Sparkles size={19} />
-
-        <div>
-          <small>Root cause</small>
-
-          <p>
-            {analysis.root_cause || "No root cause identified."}
-          </p>
-
-          {analysis.root_cause_reasoning && (
-            <>
-              <small>Reasoning</small>
-              <p>{analysis.root_cause_reasoning}</p>
-            </>
-          )}
-        </div>
-      </div>
-
-      <div className="analysis-block">
-        <h2>Impact</h2>
-
-        {Array.isArray(analysis.impacts) ? (
-          <ul>
-            {analysis.impacts.map((item, index) => (
-              <li key={index}>{item}</li>
-            ))}
-          </ul>
-        ) : (
-          <p>{analysis.impacts}</p>
-        )}
-      </div>
-
-      <div className="analysis-block">
-        <h2>Recommended actions</h2>
-
-        {Array.isArray(analysis.recommended_actions) ? (
-          <ol>
-            {analysis.recommended_actions.map((item, index) => (
-              <li key={index}>{item}</li>
-            ))}
-          </ol>
-        ) : (
-          <p>{analysis.recommended_actions}</p>
-        )}
-      </div>
-
-      <div className="analysis-block">
-        <h2>Preventive measures</h2>
-
-        {Array.isArray(analysis.preventive_measures) ? (
-          <ul>
-            {analysis.preventive_measures.map((item, index) => (
-              <li key={index}>{item}</li>
-            ))}
-          </ul>
-        ) : (
-          <p>{analysis.preventive_measures}</p>
-        )}
-      </div>
-
-      <div className="analysis-block">
-        <h2>Technology & data requirements</h2>
-
-        {Array.isArray(analysis.technology_data_requirements) ? (
-          <ul>
-            {analysis.technology_data_requirements.map((item, index) => (
-              <li key={index}>{item}</li>
-            ))}
-          </ul>
-        ) : (
-          <p>{analysis.technology_data_requirements}</p>
-        )}
-      </div>
-
-      <div className="solution">
-        <Sparkles size={19} />
-
-        <div>
-          <small>Suggested solution pathway</small>
-
-          <p>
-            {analysis.practical_solution ||
-              "No practical solution was generated."}
-          </p>
-        </div>
-      </div>
-
-      <div className="analysis-block">
-        <h2>AI confidence</h2>
-        <p>{analysis.confidence || "Not specified"}</p>
-      </div>
-
-      {analysis.verification_required && (
-        <div className="analysis-block">
-          <h2>Verification required</h2>
-
-          <p>
-            {analysis.verification_notes ||
-              "Some information should be verified on the ground."}
-          </p>
-        </div>
-      )}
-
-      {analysis.evidence_summary && (
-        <div className="analysis-block">
-          <h2>Historical evidence</h2>
-          <p>
-            {typeof analysis.evidence_summary === "string"
-              ? analysis.evidence_summary
-              : JSON.stringify(analysis.evidence_summary)}
-          </p>
-        </div>
-      )}
-      <div className="analysis-block organization-matches">
-
-        <div className="organization-heading">
-          <div>
-            <div className="eyebrow">
-              <Users size={15} /> Civic network
-            </div>
-
-            <h2>Recommended universities & industries</h2>
-
-            <p>
-              Organizations are matched using the expertise and civic
-              domain identified by the AI analysis.
-            </p>
-          </div>
-
-          <span className="match-count">
-            {issue.matches?.length || 0}
-          </span>
-        </div>
-
-
-        {issue.matches?.length > 0 ? (
-
-          <div className="organization-list">
-
-            {issue.matches.map((match) => {
-
-              const organization = match.users || {};
-
-              const role = organization.role;
-
-              const details =
-                role === "university"
-                  ? organization.university_details || {}
-                  : organization.industry_details || {};
-
-              return (
-                <div
-                  className="organization-card"
-                  key={match.id}
-                >
-
-                  <div className="organization-icon">
-
-                    {role === "university" ? (
-                      <Building2 size={22} />
-                    ) : (
-                      <Leaf size={22} />
-                    )}
-
-                  </div>
-
-                  <div className="organization-info">
-
-                    <div className="organization-top">
-
-                      <span className="role">
-                        {role === "university"
-                          ? "University"
-                          : "Industry"}
-                      </span>
-
-                      <strong className="match-score">
-                        {match.match_score}% match
-                      </strong>
-
-                    </div>
-
-                    <h3>
-                      {organization.name}
-                    </h3>
-
-                    {(details.city || details.state) && (
-                      <p className="organization-location">
-                        <MapPin size={14} />
-
-                        {details.city}
-                        {details.city && details.state
-                          ? ", "
-                          : ""}
-                        {details.state}
-                      </p>
-                    )}
-
-                    {match.matched_expertise?.length > 0 && (
-                      <div className="matched-capabilities">
-
-                        <small>
-                          Matched expertise
-                        </small>
-
-                        <div className="tags">
-
-                          {match.matched_expertise.map(
-                            (expertise, index) => (
-                              <span key={index}>
-                                {expertise}
-                              </span>
-                            )
-                          )}
-
-                        </div>
-
-                      </div>
-                    )}
-
-                    {match.match_reason && (
-                      <p className="match-reason">
-                        {match.match_reason}
-                      </p>
-                    )}
-
-                  </div>
-
-                </div>
-              );
-
-            })}
-
-          </div>
-
-        ) : (
-
-          <div className="empty">
-            <Users />
-
-            <p>
-              No university or industry matches have been
-              generated for this issue yet.
-            </p>
-          </div>
-
-        )}
-
-      </div>
-
-    </section>
-  );
-}
-
-function Loading() {
-  return (
-    <div className="loading">
-      <LoaderCircle className="spin" /> Loading civic signals…
-    </div>
-  );
-}
-
-function Empty({ text = "No issues have been shared yet." }) {
-  return (
-    <div className="empty">
-      <Leaf />
-      <p>{text}</p>
-    </div>
-  );
-}
-
-
-createRoot(document.getElementById("root")).render(
-  <BrowserRouter>
-    <App />
-  </BrowserRouter>,
-);
