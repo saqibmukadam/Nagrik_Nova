@@ -1248,41 +1248,42 @@ function Detail({ user }) {
     setErr("");
 
     try {
+      // 1. Fetch the AI Analysis
       const r = await api.post(`/issues/${id}/analyze`);
       
+      // 2. Show the analysis on screen immediately
       setIssue({
         ...r.data.issue,
         aiAnalysis: r.data.analysis,
         matches: [],
       });
 
+      // 3. THE FIX: Smooth scroll immediately! Don't wait for the organization matching.
+      setTimeout(() => {
+        const analysisSection = document.getElementById("analysis-section");
+        if (analysisSection) {
+          analysisSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+
+      // 4. Fetch the organization matches quietly in the background
       try {
         await api.post(`/issues/${id}/match-organizations`);
         const matchResponse = await api.get(`/issues/${id}`);
         const data = matchResponse.data;
 
-        setIssue({
-          ...data.issue,
-          aiAnalysis: data.aiAnalysis || r.data.analysis,
+        // Update with the matches once they arrive
+        setIssue(prev => ({
+          ...prev,
           matches: data.matches || [],
-        });
+        }));
       } catch (matchError) {
         console.error("Organization matching failed:", matchError);
       }
 
-      // Turn off loading UI immediately
-      setBusy(false);
-
-      // THE FIX: Use behavior 'auto' to bypass the Chromium animation bug and snap instantly to the section
-      setTimeout(() => {
-        const analysisSection = document.getElementById("analysis-section");
-        if (analysisSection) {
-          analysisSection.scrollIntoView({ behavior: 'auto', block: 'start' });
-        }
-      }, 10);
-
     } catch (e) {
       setErr(e.response?.data?.message || "Analysis could not be completed.");
+    } finally {
       setBusy(false);
     }
   };
