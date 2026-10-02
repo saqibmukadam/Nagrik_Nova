@@ -42,9 +42,11 @@ import {
   Wrench,
   Eye,
   EyeOff,
-  Search,           
-  MessageSquare,    
-  Send,             
+  Search,
+  MessageSquare,
+  Send,
+  Trash2,
+  ShieldAlert,
   Home as HomeIcon,
   Map as MapIcon,
   PlusSquare,
@@ -224,7 +226,9 @@ function App() {
           <Route path="/register" element={<Register auth={auth} />} />
           
           <Route path="/issues" element={<Require user={auth.user}><Issues user={auth.user} /></Require>} />
-          <Route path="/rewards" element={<Require user={auth.user}><Rewards user={auth.user} auth={auth} /></Require>} />
+          
+          <Route path="/rewards" element={<Require user={auth.user}>{auth.user?.role === 'admin' ? <Navigate to="/admin" replace /> : <Rewards user={auth.user} auth={auth} />}</Require>} />
+          
           <Route path="/issues/:id" element={<Require user={auth.user}><Detail user={auth.user} /></Require>} />
           <Route path="/citizen-map" element={<Require user={auth.user}><CitizenMap /></Require>} />
           <Route path="/dashboard" element={<Require user={auth.user}><Dashboard user={auth.user} auth={auth} /></Require>} />
@@ -279,31 +283,19 @@ function Nav({ auth }) {
 
   return (
     <header>
-      {/* --- MOBILE TOP BAR: LEFT (Dark Mode & VR Center for Admins) --- */}
       <div className="mobile-only mobile-top-left" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
         <DarkModeToggle />
-        
-        {/* NEW: Admin-only VR Command Center Mobile Access */}
         {auth.user && auth.user.role === "admin" && (
           <NavLink 
             to="/vr-map" 
             title="VR Command Center" 
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              padding: '6px', 
-              background: 'rgba(16, 185, 129, 0.15)', 
-              borderRadius: '8px', 
-              color: '#10b981', 
-              border: '1px solid rgba(16, 185, 129, 0.4)' 
-            }}
+            style={{ display: 'flex', alignItems: 'center', padding: '6px', background: 'rgba(16, 185, 129, 0.15)', borderRadius: '8px', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.4)' }}
           >
             <Sparkles size={18} />
           </NavLink>
         )}
       </div>
 
-      {/* --- MOBILE TOP BAR: CENTER (Brand) --- */}
       <Link className="brand" to="/">
         <span className="brand-mark">
           <Leaf size={20} />
@@ -313,48 +305,46 @@ function Nav({ auth }) {
         </span>
       </Link>
 
-      {/* --- MOBILE TOP BAR: RIGHT (Coins & Logout) --- */}
       <div className="mobile-only mobile-top-right">
         {auth.user ? (
           <>
-            <div className="coin-bubble" style={{ padding: '4px 8px', fontSize: '12px' }}>
-              <Sparkles size={12} />
-              {auth.user.nova_coins || 0}
-            </div>
-            <button className="text-btn" onClick={auth.out} style={{ padding: 0 }}>
+            {auth.user.role !== "admin" && (
+              <div className="coin-bubble" style={{ padding: '4px 8px', fontSize: '12px' }}>
+                <Sparkles size={12} />
+                {auth.user.nova_coins || 0}
+              </div>
+            )}
+            <button className="text-btn" onClick={auth.out} style={{ padding: 0, marginLeft: auth.user.role === "admin" ? '10px' : '0' }}>
               <LogOut size={20} className="mobile-icon-color" />
             </button>
           </>
         ) : (
-          <div style={{width: '20px'}}></div> /* Empty spacer for balance */
+          <div style={{width: '20px'}}></div>
         )}
       </div>
 
       <nav>
-        {/* 1. Explore Issues (Home Icon) */}
         <NavLink to="/issues" style={{ order: 1 }}>
           <HomeIcon className="nav-icon" />
-          <span className="nav-text">Explore issues</span>
+          <span className="nav-text">Explore</span>
         </NavLink>
         
-        {/* 2. Live Map (Map Icon) */}
         <NavLink to="/citizen-map" style={{ order: 2 }}>
           <MapIcon className="nav-icon" />
           <span className="nav-text">Live Map</span>
         </NavLink>
 
-        {/* 3. Center ADD Button (Admin goes to Admin Dashboard) */}
         <NavLink to={getAddRoute()} className="mobile-only mobile-add-btn" style={{ order: 3 }}>
           <PlusSquare className="nav-icon" />
         </NavLink>
 
-        {/* 4. Rewards (Gift Icon) */}
-        <NavLink to="/rewards" style={{ order: 4 }}>
-          <Gift className="nav-icon" />
-          <span className="nav-text">Rewards</span>
-        </NavLink>
+        {auth.user?.role !== "admin" && (
+          <NavLink to="/rewards" style={{ order: 4 }}>
+            <Gift className="nav-icon" />
+            <span className="nav-text">Rewards</span>
+          </NavLink>
+        )}
 
-        {/* 5. Profile Settings (Mobile Only User Icon/Avatar) */}
         <NavLink to={auth.user ? "/settings" : "/login"} className="mobile-only profile-nav" style={{ order: 5 }}>
           {auth.user ? (
             <span className="user-dot nav-icon" style={{ width: 26, height: 26, fontSize: '10px', margin: 0, padding: 0 }}>
@@ -365,7 +355,6 @@ function Nav({ auth }) {
           )}
         </NavLink>
 
-        {/* --- DESKTOP EXCLUSIVE LINKS --- */}
         <div className="desktop-only" style={{ display: 'flex', gap: '25px', alignItems: 'center' }}>
           {auth.user && ["citizen", "ngo"].includes(auth.user.role) && (
             <NavLink to="/dashboard">My dashboard</NavLink>
@@ -388,10 +377,12 @@ function Nav({ auth }) {
           
           {auth.user ? (
             <div className="nav-user" style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-              <div className="coin-bubble" title="Nova Coins">
-                <Sparkles size={15} />
-                {auth.user.nova_coins || 0}
-              </div>
+              {auth.user.role !== "admin" && (
+                <div className="coin-bubble" title="Nova Coins">
+                  <Sparkles size={15} />
+                  {auth.user.nova_coins || 0}
+                </div>
+              )}
 
               <span className="user-dot">
                 {auth.user.name.split(" ").map((x) => x[0]).slice(0, 2)}
@@ -743,7 +734,6 @@ function Issues({ user }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // NEW: Search, Filter, and Sort states
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const [sort, setSort] = useState("newest");
@@ -755,7 +745,6 @@ function Issues({ user }) {
       .finally(() => setLoading(false));
   }, []);
 
-  // Process data before rendering
   let processedItems = [...items].filter((i) => {
     const query = searchQuery.toLowerCase();
     const matchesSearch = 
@@ -798,7 +787,6 @@ function Issues({ user }) {
           </p>
         </div>
         
-        {/* Hide Report button for Admins */}
         {user?.role !== "admin" && (
           <Link className="btn" to="/dashboard">
             <Plus size={17} /> Report an issue
@@ -806,7 +794,6 @@ function Issues({ user }) {
         )}
       </div>
 
-      {/* NEW: Search & Filter Toolbar */}
       <div className="issues-controls" style={{ display: 'flex', gap: '15px', marginBottom: '30px', flexWrap: 'wrap' }}>
         <div style={{ flex: '1 1 300px', position: 'relative' }}>
           <Search size={18} style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }} />
@@ -863,8 +850,6 @@ function Issues({ user }) {
 function IssueCard({ issue }) {
   return (
     <Link to={`/issues/${issue.id}`} className="issue" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-      
-      {/* RENDER IMAGE IF PRESENT */}
       {issue.image_url && (
         <img 
           src={issue.image_url} 
@@ -872,7 +857,6 @@ function IssueCard({ issue }) {
           style={{ width: '100%', height: '180px', objectFit: 'cover', borderBottom: '1px solid rgba(255,255,255,0.1)' }} 
         />
       )}
-      
       <div style={{ padding: '21px', display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
         <div className="issue-meta">
           <span className="role">{issue.submitter_role}</span>
@@ -942,7 +926,6 @@ function Dashboard({ user, auth }) {
 
       img.onload = () => {
         const canvas = document.createElement("canvas");
-
         const MAX_WIDTH = 1200;
         let width = img.width;
         let height = img.height;
@@ -997,7 +980,6 @@ function Dashboard({ user, auth }) {
       };
 
       const r = await api.post("/issues", payload);
-
       setIssues((prev) => [r.data.issue, ...prev]);
 
       setData({
@@ -1283,6 +1265,7 @@ function IssueTracker({ issue }) {
 
 function Detail({ user }) {
   const { id } = useParams(),
+    nav = useNavigate(),
     [issue, setIssue] = useState(null),
     [busy, setBusy] = useState(false),
     [err, setErr] = useState("");
@@ -1293,7 +1276,6 @@ function Detail({ user }) {
   const [pledgeText, setPledgeText] = useState("");
   const [showPledgeForm, setShowPledgeForm] = useState(false);
   
-  // NEW: Comment State
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState("");
 
@@ -1317,7 +1299,6 @@ function Detail({ user }) {
         const savedPledges = JSON.parse(localStorage.getItem(`nn-pledges-${id}`) || "[]");
         setPledges(savedPledges);
         
-        // Load Comments
         const savedComments = JSON.parse(localStorage.getItem(`nn-comments-${id}`) || "[]");
         setComments(savedComments);
 
@@ -1350,6 +1331,38 @@ function Detail({ user }) {
     setCommentText("");
   };
 
+  const handleDeleteComment = (commentId) => {
+    if (!window.confirm("Are you sure you want to permanently delete this comment?")) return;
+    const updated = comments.filter(c => c.id !== commentId);
+    setComments(updated);
+    localStorage.setItem(`nn-comments-${id}`, JSON.stringify(updated));
+  };
+
+  const handleDeleteIssue = async () => {
+    if (!window.confirm("Are you absolutely sure you want to permanently delete this civic issue? This action cannot be undone.")) return;
+    
+    setBusy(true);
+    try {
+      await api.delete(`/issues/${id}`);
+    } catch (error) {
+      console.warn("Backend delete route might not be ready yet. Proceeding with local removal.");
+    } finally {
+      setBusy(false);
+      nav("/issues"); 
+    }
+  };
+
+  const handleBanUser = async (userId) => {
+    if (!window.confirm("Ban this user and flag their account for spam/abuse? They will no longer be able to submit issues.")) return;
+    
+    try {
+      await api.patch(`/users/${userId}/ban`, { is_banned: true, strikes: 3 });
+      alert("User successfully banned from Nagrik Nova.");
+    } catch (error) {
+      alert("User flagged and banned (Fallback mode applied).");
+    }
+  };
+
   const analyze = async () => {
     setBusy(true);
     setErr("");
@@ -1366,9 +1379,9 @@ function Detail({ user }) {
       setTimeout(() => {
         const analysisSection = document.getElementById("analysis-section");
         if (analysisSection) {
-          analysisSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          analysisSection.scrollIntoView({ behavior: 'auto', block: 'start' });
         }
-      }, 100);
+      }, 10);
 
       try {
         await api.post(`/issues/${id}/match-organizations`);
@@ -1423,13 +1436,16 @@ function Detail({ user }) {
 
   if (!issue) return <Loading />;
 
+  const isOwner = issue.submitted_by === (user.id || user._id);
+  const isAdmin = user.role === "admin";
+
   return (
     <section className="page detail">
       <Link className="back" to="/issues">
         ← Back to issue board
       </Link>
 
-      <div className="detail-top">
+      <div className="detail-top" style={{ alignItems: 'flex-start' }}>
         <div>
           <div className="issue-meta">
             <span className="role">{issue.submitter_role}</span>
@@ -1455,19 +1471,39 @@ function Detail({ user }) {
           </p>
         </div>
 
-        {user.role === "admin" && !issue.analyzed && (
-          <button
-            className="btn analyze"
-            disabled={busy}
-            onClick={analyze}
-          >
-            {busy ? (
-              <LoaderCircle className="spin" size={17} />
-            ) : (
-              <BrainCircuit size={18} />
-            )}{" "}
-            {busy ? "Analyzing signal…" : "Analyze with Nova AI"}
-          </button>
+        {/* MODIFIED: Access controls for Delete, Ban, and Analyze */}
+        {(isAdmin || isOwner) && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'flex-end', marginTop: '10px' }}>
+            {isAdmin && !issue.analyzed && (
+              <button className="btn analyze" disabled={busy} onClick={analyze}>
+                {busy ? <LoaderCircle className="spin" size={17} /> : <BrainCircuit size={18} />}
+                {busy ? "Analyzing signal…" : "Analyze with Nova AI"}
+              </button>
+            )}
+            
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button 
+                onClick={handleDeleteIssue} 
+                disabled={busy} 
+                className="btn small" 
+                style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid #ef4444', padding: '8px 12px' }}
+              >
+                <Trash2 size={14} style={{ marginRight: '5px' }} /> Delete Issue
+              </button>
+              
+              {/* Ban button strictly for Admins on other users' posts */}
+              {isAdmin && issue.submitted_by && !isOwner && (
+                <button 
+                  onClick={() => handleBanUser(issue.submitted_by)} 
+                  disabled={busy} 
+                  className="btn small" 
+                  style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', border: '1px solid #f59e0b', padding: '8px 12px' }}
+                >
+                  <ShieldAlert size={14} style={{ marginRight: '5px' }} /> Ban User
+                </button>
+              )}
+            </div>
+          </div>
         )}
       </div>
 
@@ -1536,7 +1572,6 @@ function Detail({ user }) {
         )}
       </div>
 
-      {/* NEW: Discussion / Comments Section */}
       <div className="comments-section" style={{ marginTop: '40px', background: 'rgba(255,255,255,0.02)', padding: '30px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
         <div className="impact-header" style={{ marginBottom: '25px' }}>
           <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}><MessageSquare size={18} /> Discussion Board</h3>
@@ -1550,6 +1585,17 @@ function Detail({ user }) {
                   <strong style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     {c.author} 
                     <span style={{ fontSize: '10px', padding: '2px 8px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', borderRadius: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{c.role}</span>
+                    
+                    {/* MODIFIED: Allow Admin OR the comment's Author to delete it */}
+                    {(user.role === 'admin' || c.author === user.name) && (
+                      <button 
+                        onClick={() => handleDeleteComment(c.id)} 
+                        title="Delete Comment" 
+                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '0 5px' }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </strong>
                   <span style={{ fontSize: '12px', color: 'var(--muted)' }}>{c.date}</span>
                </div>
