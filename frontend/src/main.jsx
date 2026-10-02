@@ -463,7 +463,7 @@ function ScrollReveal({ children, delay = 0 }) {
   );
 }
 
-// UPGRADED: Cinematic Landing Page with 3D Imagery
+// UPGRADED: Cinematic Landing Page with Phone Mockup
 function Home({ user }) {
   return (
     <div className="home-wrapper">
@@ -497,15 +497,26 @@ function Home({ user }) {
           </ScrollReveal>
         </div>
         <ScrollReveal delay={400}>
-          <div className="hero-art quiet-art" aria-label="Animated collaboration illustration">
-            <div className="constellation-lines"></div>
-            <div className="constellation-core"><BrainCircuit size={48} /><span>Ideas in action</span></div>
-            <div className="constellation-node node-a"><span></span></div>
-            <div className="constellation-node node-b"><span></span></div>
-            <div className="constellation-node node-c"><span></span></div>
-            <div className="constellation-label label-a">Community</div>
-            <div className="constellation-label label-b">Research</div>
-            <div className="constellation-label label-c">Industry</div>
+          {/* THE FIX: Swapped constellation for animated Phone Mockup */}
+          <div className="hero-phone-art" aria-label="Animated Phone Showcase">
+             <div className="phone-mockup">
+                <div className="phone-screen">
+                   {/* Fallback image representing the app UI */}
+                   <img src="https://images.unsplash.com/photo-1512428559087-560fa5ceab42?auto=format&fit=crop&w=400&q=80" alt="Nagrik Nova App Preview" />
+                </div>
+                <div className="phone-notch"></div>
+             </div>
+             
+             {/* Floating UI Chips */}
+             <div className="floating-chip chip-1">
+                <MapPin size={16} /> Coordinates Pinned
+             </div>
+             <div className="floating-chip chip-2">
+                <BrainCircuit size={16} /> AI Analyzed
+             </div>
+             <div className="floating-chip chip-3">
+                <CheckCircle2 size={16} /> Issue Resolved
+             </div>
           </div>
         </ScrollReveal>
       </section>
@@ -520,7 +531,7 @@ function Home({ user }) {
         </ScrollReveal>
 
         <div className="showcase-steps">
-          {/* Feature 1: Realistic 3D Image Addition */}
+          {/* Feature 1 */}
           <ScrollReveal>
             <div className="showcase-step">
               <div className="step-content">
@@ -528,16 +539,11 @@ function Home({ user }) {
                 <h3>1. Snap and Report</h3>
                 <p>See a pothole, broken streetlight, or illegal dumping? Snap a quick photo. Our spatial integration perfectly captures the exact coordinates for the city to see.</p>
               </div>
-              <div className="step-visual image-visual">
-                {/* AI-Generated Realistic 3D Placeholder */}
-                <img 
-                  src="https://images.unsplash.com/photo-1523206489230-c012c64b2b48?q=80&w=800&auto=format&fit=crop" 
-                  alt="Realistic 3D citizen reporting issue" 
-                  className="realistic-3d-img"
-                />
-                <div className="mock-ui floating-badge">
-                   <MapPin size={20} color="#10b981"/>
-                   <div className="mock-text">Coordinates Pinned</div>
+              <div className="step-visual">
+                <div className="mock-ui">
+                   <MapPin size={24} color="#10b981"/>
+                   <div className="mock-line"></div>
+                   <div className="mock-line short"></div>
                 </div>
               </div>
             </div>
