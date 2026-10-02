@@ -42,6 +42,9 @@ import {
   Wrench,
   Eye,
   EyeOff,
+  Search,           
+  MessageSquare,    
+  Send,             
   Home as HomeIcon,
   Map as MapIcon,
   PlusSquare,
@@ -220,7 +223,7 @@ function App() {
           <Route path="/login" element={<Login auth={auth} />} />
           <Route path="/register" element={<Register auth={auth} />} />
           
-          <Route path="/issues" element={<Require user={auth.user}><Issues /></Require>} />
+          <Route path="/issues" element={<Require user={auth.user}><Issues user={auth.user} /></Require>} />
           <Route path="/rewards" element={<Require user={auth.user}><Rewards user={auth.user} auth={auth} /></Require>} />
           <Route path="/issues/:id" element={<Require user={auth.user}><Detail user={auth.user} /></Require>} />
           <Route path="/citizen-map" element={<Require user={auth.user}><CitizenMap /></Require>} />
@@ -736,9 +739,14 @@ function Field({ label, type = "text", ...props }) {
   );
 }
 
-function Issues() {
-  const [items, setItems] = useState([]),
-    [loading, setLoading] = useState(true);
+function Issues({ user }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
+  // NEW: Search, Filter, and Sort states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [sort, setSort] = useState("newest");
     
   useEffect(() => {
     api
@@ -746,10 +754,37 @@ function Issues() {
       .then((r) => setItems(r.data))
       .finally(() => setLoading(false));
   }, []);
+
+  // Process data before rendering
+  let processedItems = [...items].filter((i) => {
+    const query = searchQuery.toLowerCase();
+    const matchesSearch = 
+      (i.title && i.title.toLowerCase().includes(query)) || 
+      (i.description && i.description.toLowerCase().includes(query)) ||
+      (i.city && i.city.toLowerCase().includes(query));
+      
+    const matchesFilter = 
+      filter === "all" ? true :
+      filter === "analyzed" ? i.analyzed :
+      filter === "pending" ? !i.analyzed : true;
+      
+    return matchesSearch && matchesFilter;
+  });
+
+  if (sort === "oldest") {
+    processedItems.reverse();
+  } else if (sort === "priority") {
+    processedItems.sort((a, b) => {
+      const pVals = { high: 3, medium: 2, low: 1 };
+      const pA = pVals[a.priority?.toLowerCase()] || 0;
+      const pB = pVals[b.priority?.toLowerCase()] || 0;
+      return pB - pA;
+    });
+  }
   
   return (
     <section className="page">
-      <div className="page-head">
+      <div className="page-head" style={{ marginBottom: '20px' }}>
         <div>
           <div className="eyebrow">
             <Sparkles size={15} /> Community signal board
@@ -762,20 +797,65 @@ function Issues() {
             best.
           </p>
         </div>
-        <Link className="btn" to="/dashboard">
-          <Plus size={17} /> Report an issue
-        </Link>
+        
+        {/* Hide Report button for Admins */}
+        {user?.role !== "admin" && (
+          <Link className="btn" to="/dashboard">
+            <Plus size={17} /> Report an issue
+          </Link>
+        )}
       </div>
+
+      {/* NEW: Search & Filter Toolbar */}
+      <div className="issues-controls" style={{ display: 'flex', gap: '15px', marginBottom: '30px', flexWrap: 'wrap' }}>
+        <div style={{ flex: '1 1 300px', position: 'relative' }}>
+          <Search size={18} style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }} />
+          <input 
+            type="text" 
+            placeholder="Search issues by keyword, city, or problem..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{ width: '100%', padding: '14px 15px 14px 45px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white', fontSize: '15px' }}
+          />
+        </div>
+        <div style={{ display: 'flex', gap: '10px', flex: '1 1 auto' }}>
+          <select 
+            value={filter} 
+            onChange={(e) => setFilter(e.target.value)}
+            style={{ flex: 1, padding: '14px 20px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white', outline: 'none', cursor: 'pointer' }}
+          >
+            <option value="all" style={{ color: 'black' }}>All Issues</option>
+            <option value="analyzed" style={{ color: 'black' }}>AI Analyzed</option>
+            <option value="pending" style={{ color: 'black' }}>Pending Analysis</option>
+          </select>
+          <select 
+            value={sort} 
+            onChange={(e) => setSort(e.target.value)}
+            style={{ flex: 1, padding: '14px 20px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white', outline: 'none', cursor: 'pointer' }}
+          >
+            <option value="newest" style={{ color: 'black' }}>Newest First</option>
+            <option value="oldest" style={{ color: 'black' }}>Oldest First</option>
+            <option value="priority" style={{ color: 'black' }}>Highest Priority</option>
+          </select>
+        </div>
+      </div>
+
       {loading ? (
         <Loading />
       ) : (
         <div className="issue-grid">
-          {items.map((i) => (
+          {processedItems.map((i) => (
             <IssueCard key={i.id} issue={i} />
           ))}
         </div>
       )}
-      {!loading && !items.length && <Empty />}
+      {!loading && !processedItems.length && (
+        <div className="empty" style={{ marginTop: '20px' }}>
+          <Search size={30} style={{ color: 'var(--muted)', marginBottom: '15px' }} />
+          <h3>No issues found</h3>
+          <p>Try adjusting your search filters or sorting options.</p>
+        </div>
+      )}
     </section>
   );
 }
@@ -1212,6 +1292,10 @@ function Detail({ user }) {
   const [pledges, setPledges] = useState([]);
   const [pledgeText, setPledgeText] = useState("");
   const [showPledgeForm, setShowPledgeForm] = useState(false);
+  
+  // NEW: Comment State
+  const [comments, setComments] = useState([]);
+  const [commentText, setCommentText] = useState("");
 
   useEffect(() => {
     api
@@ -1232,6 +1316,11 @@ function Detail({ user }) {
       const loadData = () => {
         const savedPledges = JSON.parse(localStorage.getItem(`nn-pledges-${id}`) || "[]");
         setPledges(savedPledges);
+        
+        // Load Comments
+        const savedComments = JSON.parse(localStorage.getItem(`nn-comments-${id}`) || "[]");
+        setComments(savedComments);
+
         const savedUpvotes = parseInt(localStorage.getItem(`nn-upvotes-${id}`) || Math.floor(Math.random() * 12) + 2);
         setUpvotes(savedUpvotes);
         const userUpvoted = localStorage.getItem(`nn-upvoted-${id}-${user.id || user._id}`) === "true";
@@ -1243,22 +1332,37 @@ function Detail({ user }) {
     }
   }, [issue, id, user]);
 
+  const handleComment = (e) => {
+    e.preventDefault();
+    if (!commentText.trim()) return;
+    
+    const newComment = {
+      id: Date.now(),
+      author: user.name,
+      role: user.role,
+      text: commentText,
+      date: new Date().toLocaleDateString() + ' at ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+    };
+    
+    const updated = [...comments, newComment];
+    setComments(updated);
+    localStorage.setItem(`nn-comments-${id}`, JSON.stringify(updated));
+    setCommentText("");
+  };
+
   const analyze = async () => {
     setBusy(true);
     setErr("");
 
     try {
-      // 1. Fetch the AI Analysis
       const r = await api.post(`/issues/${id}/analyze`);
       
-      // 2. Show the analysis on screen immediately
       setIssue({
         ...r.data.issue,
         aiAnalysis: r.data.analysis,
         matches: [],
       });
 
-      // 3. THE FIX: Smooth scroll immediately! Don't wait for the organization matching.
       setTimeout(() => {
         const analysisSection = document.getElementById("analysis-section");
         if (analysisSection) {
@@ -1266,13 +1370,11 @@ function Detail({ user }) {
         }
       }, 100);
 
-      // 4. Fetch the organization matches quietly in the background
       try {
         await api.post(`/issues/${id}/match-organizations`);
         const matchResponse = await api.get(`/issues/${id}`);
         const data = matchResponse.data;
 
-        // Update with the matches once they arrive
         setIssue(prev => ({
           ...prev,
           matches: data.matches || [],
@@ -1434,11 +1536,46 @@ function Detail({ user }) {
         )}
       </div>
 
+      {/* NEW: Discussion / Comments Section */}
+      <div className="comments-section" style={{ marginTop: '40px', background: 'rgba(255,255,255,0.02)', padding: '30px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+        <div className="impact-header" style={{ marginBottom: '25px' }}>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}><MessageSquare size={18} /> Discussion Board</h3>
+          <span className="upvote-count">{comments.length} Comments</span>
+        </div>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '30px', maxHeight: '400px', overflowY: 'auto' }}>
+          {comments.length > 0 ? comments.map(c => (
+            <div key={c.id} style={{ background: 'rgba(0,0,0,0.2)', padding: '15px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.03)' }}>
+               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <strong style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {c.author} 
+                    <span style={{ fontSize: '10px', padding: '2px 8px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', borderRadius: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{c.role}</span>
+                  </strong>
+                  <span style={{ fontSize: '12px', color: 'var(--muted)' }}>{c.date}</span>
+               </div>
+               <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.5', color: '#e2e8f0' }}>{c.text}</p>
+            </div>
+          )) : <p style={{ color: 'var(--muted)', fontStyle: 'italic', margin: 0 }}>No comments yet. Start the discussion!</p>}
+        </div>
+
+        <form onSubmit={handleComment} style={{ display: 'flex', gap: '10px' }}>
+           <input 
+              type="text" 
+              required
+              placeholder="Share your thoughts or updates on this issue..." 
+              value={commentText}
+              onChange={e => setCommentText(e.target.value)}
+              style={{ flex: 1, padding: '14px 15px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'white', fontSize: '14px' }}
+           />
+           <button type="submit" className="btn"><Send size={16} /> Post</button>
+        </form>
+      </div>
+
       <div id="analysis-section" style={{ scrollMarginTop: '80px' }}>
         {issue.analyzed && issue.aiAnalysis ? (
           <Analysis issue={issue} />
         ) : (
-          <div className="await">
+          <div className="await" style={{ marginTop: '40px' }}>
             <BrainCircuit />
             <div>
               <h3>Waiting for civic intelligence</h3>
