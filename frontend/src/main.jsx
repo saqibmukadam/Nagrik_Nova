@@ -427,18 +427,25 @@ function Nav({ auth }) {
   );
 }
 
-// NEW: Apple-Style Scroll Animation Wrapper
+// UPGRADED: Two-way Scroll Animation Wrapper
 function ScrollReveal({ children, delay = 0 }) {
   const [isVisible, setIsVisible] = useState(false);
   const domRef = useRef();
 
   useEffect(() => {
     const observer = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting) {
-        setIsVisible(true);
-        observer.unobserve(domRef.current);
-      }
-    }, { threshold: 0.15 }); // Triggers when 15% of the element is in view
+      entries.forEach(entry => {
+        // Toggle visibility on BOTH scroll down and scroll up
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+        } else {
+          setIsVisible(false);
+        }
+      });
+    }, { 
+      threshold: 0.2, 
+      rootMargin: "0px 0px -50px 0px" // Triggers slightly before it hits the bottom of the screen
+    });
     
     if (domRef.current) observer.observe(domRef.current);
     return () => observer.disconnect();
@@ -448,14 +455,15 @@ function ScrollReveal({ children, delay = 0 }) {
     <div 
       ref={domRef} 
       className={`scroll-reveal ${isVisible ? 'is-visible' : ''}`}
-      style={{ transitionDelay: `${delay}ms` }}
+      // Remove delay on exit so it retracts instantly when scrolling up
+      style={{ transitionDelay: isVisible ? `${delay}ms` : '0ms' }}
     >
       {children}
     </div>
   );
 }
 
-// UPGRADED: Cinematic Landing Page
+// UPGRADED: Cinematic Landing Page with 3D Imagery
 function Home({ user }) {
   return (
     <div className="home-wrapper">
@@ -512,7 +520,7 @@ function Home({ user }) {
         </ScrollReveal>
 
         <div className="showcase-steps">
-          {/* Feature 1 */}
+          {/* Feature 1: Realistic 3D Image Addition */}
           <ScrollReveal>
             <div className="showcase-step">
               <div className="step-content">
@@ -520,11 +528,16 @@ function Home({ user }) {
                 <h3>1. Snap and Report</h3>
                 <p>See a pothole, broken streetlight, or illegal dumping? Snap a quick photo. Our spatial integration perfectly captures the exact coordinates for the city to see.</p>
               </div>
-              <div className="step-visual">
-                <div className="mock-ui">
-                   <MapPin size={24} color="#10b981"/>
-                   <div className="mock-line"></div>
-                   <div className="mock-line short"></div>
+              <div className="step-visual image-visual">
+                {/* AI-Generated Realistic 3D Placeholder */}
+                <img 
+                  src="https://images.unsplash.com/photo-1523206489230-c012c64b2b48?q=80&w=800&auto=format&fit=crop" 
+                  alt="Realistic 3D citizen reporting issue" 
+                  className="realistic-3d-img"
+                />
+                <div className="mock-ui floating-badge">
+                   <MapPin size={20} color="#10b981"/>
+                   <div className="mock-text">Coordinates Pinned</div>
                 </div>
               </div>
             </div>
