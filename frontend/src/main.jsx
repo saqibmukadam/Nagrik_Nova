@@ -427,105 +427,173 @@ function Nav({ auth }) {
   );
 }
 
+// NEW: Apple-Style Scroll Animation Wrapper
+function ScrollReveal({ children, delay = 0 }) {
+  const [isVisible, setIsVisible] = useState(false);
+  const domRef = useRef();
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) {
+        setIsVisible(true);
+        observer.unobserve(domRef.current);
+      }
+    }, { threshold: 0.15 }); // Triggers when 15% of the element is in view
+    
+    if (domRef.current) observer.observe(domRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div 
+      ref={domRef} 
+      className={`scroll-reveal ${isVisible ? 'is-visible' : ''}`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      {children}
+    </div>
+  );
+}
+
+// UPGRADED: Cinematic Landing Page
 function Home({ user }) {
   return (
-    <>
-      <section className="hero">
+    <div className="home-wrapper">
+      
+      {/* 1. Cinematic Hero Section */}
+      <section className="hero cinematic-hero">
         <div className="hero-copy">
-          <div className="eyebrow">
-            <Sparkles size={15} /> Civic intelligence, made collective
-          </div>
-          <h1>
-            Big civic change starts with <em>one shared signal.</em>
-          </h1>
-          <p>
-            Nagrik Nova connects community-reported challenges with the people,
-            research and resources ready to solve them.
-          </p>
-          <div className="hero-actions">
-            <Link className="btn" to={user ? "/issues" : "/register"}>
-              {user ? "Explore live issues" : "Become a changemaker"}{" "}
-              <ArrowRight size={17} />
-            </Link>
-            <a className="link-action" href="#how">
-              See how it works <ChevronRight size={17} />
-            </a>
-          </div>
-          <div className="trust">
-            <span>
-              <CheckCircle2 /> Community-led
-            </span>
-            <span>
-              <CheckCircle2 /> AI-assisted
-            </span>
-            <span>
-              <CheckCircle2 /> Outcome-focused
-            </span>
-          </div>
+          <ScrollReveal>
+            <div className="eyebrow">
+              <Sparkles size={15} /> Civic intelligence, made collective
+            </div>
+          </ScrollReveal>
+          <ScrollReveal delay={100}>
+            <h1>
+              Big civic change starts with <em>one shared signal.</em>
+            </h1>
+          </ScrollReveal>
+          <ScrollReveal delay={200}>
+            <p>
+              Nagrik Nova connects community-reported challenges with the people,
+              research and resources ready to solve them.
+            </p>
+          </ScrollReveal>
+          <ScrollReveal delay={300}>
+            <div className="hero-actions">
+              <Link className="btn" to={user ? "/issues" : "/register"}>
+                {user ? "Explore live issues" : "Become a changemaker"}{" "}
+                <ArrowRight size={17} />
+              </Link>
+            </div>
+          </ScrollReveal>
         </div>
-        <div className="hero-art quiet-art" aria-label="Animated collaboration illustration">
-          <div className="constellation-lines"></div>
-          <div className="constellation-core"><BrainCircuit size={48} /><span>Ideas in action</span></div>
-          <div className="constellation-node node-a"><span></span></div>
-          <div className="constellation-node node-b"><span></span></div>
-          <div className="constellation-node node-c"><span></span></div>
-          <div className="constellation-label label-a">Community</div>
-          <div className="constellation-label label-b">Research</div>
-          <div className="constellation-label label-c">Industry</div>
-          <div className="constellation-caption"><Sparkles size={16} /> Collaboration creates momentum</div>
+        <ScrollReveal delay={400}>
+          <div className="hero-art quiet-art" aria-label="Animated collaboration illustration">
+            <div className="constellation-lines"></div>
+            <div className="constellation-core"><BrainCircuit size={48} /><span>Ideas in action</span></div>
+            <div className="constellation-node node-a"><span></span></div>
+            <div className="constellation-node node-b"><span></span></div>
+            <div className="constellation-node node-c"><span></span></div>
+            <div className="constellation-label label-a">Community</div>
+            <div className="constellation-label label-b">Research</div>
+            <div className="constellation-label label-c">Industry</div>
+          </div>
+        </ScrollReveal>
+      </section>
+
+      {/* 2. Scrolling Showcase Section */}
+      <section className="showcase-section">
+        <ScrollReveal>
+          <div className="showcase-header">
+            <h2>How it works</h2>
+            <p>A seamless ecosystem designed to turn local problems into solved realities.</p>
+          </div>
+        </ScrollReveal>
+
+        <div className="showcase-steps">
+          {/* Feature 1 */}
+          <ScrollReveal>
+            <div className="showcase-step">
+              <div className="step-content">
+                <div className="step-icon"><Camera size={32} /></div>
+                <h3>1. Snap and Report</h3>
+                <p>See a pothole, broken streetlight, or illegal dumping? Snap a quick photo. Our spatial integration perfectly captures the exact coordinates for the city to see.</p>
+              </div>
+              <div className="step-visual">
+                <div className="mock-ui">
+                   <MapPin size={24} color="#10b981"/>
+                   <div className="mock-line"></div>
+                   <div className="mock-line short"></div>
+                </div>
+              </div>
+            </div>
+          </ScrollReveal>
+
+          {/* Feature 2 (Reversed Layout) */}
+          <ScrollReveal>
+            <div className="showcase-step reverse">
+              <div className="step-content">
+                <div className="step-icon"><BrainCircuit size={32} /></div>
+                <h3>2. Nova AI Analyzes</h3>
+                <p>No more government black holes. Nova AI instantly analyzes the image, identifies the root cause, sets the priority level, and tags the exact expertise required.</p>
+              </div>
+              <div className="step-visual">
+                <div className="mock-ui dark">
+                   <Sparkles size={24} color="#3b82f6"/>
+                   <div className="mock-text">Priority: High</div>
+                   <div className="mock-text">Domain: Infrastructure</div>
+                </div>
+              </div>
+            </div>
+          </ScrollReveal>
+
+          {/* Feature 3 */}
+          <ScrollReveal>
+            <div className="showcase-step">
+              <div className="step-content">
+                <div className="step-icon"><Gift size={32} /></div>
+                <h3>3. Earn Nova Coins</h3>
+                <p>Your effort is valuable. For every verified issue you report, earn <strong>Nova Coins</strong>. Redeem them for real-world rewards and local community perks.</p>
+              </div>
+              <div className="step-visual">
+                <div className="mock-ui glass-gold">
+                   <Gift size={32} color="#f59e0b"/>
+                   <div className="mock-text highlight">+20 Nova Coins Earned!</div>
+                </div>
+              </div>
+            </div>
+          </ScrollReveal>
         </div>
       </section>
-      <section className="impact-strip">
-        <div>
-          <strong>01</strong>
-          <span>Report what matters</span>
-        </div>
-        <div>
-          <strong>02</strong>
-          <span>Understand the challenge</span>
-        </div>
-        <div>
-          <strong>03</strong>
-          <span>Connect the right minds</span>
-        </div>
-        <div>
-          <strong>04</strong>
-          <span>Build local impact</span>
-        </div>
-      </section>
-      <section id="how" className="how">
-        <div className="section-intro">
-          <div className="eyebrow">
-            <Leaf size={15} /> From a concern to a solution
+
+      {/* 3. Final Sign-Up Call to Action */}
+      <section className="cta-section">
+        <ScrollReveal>
+          <div className="cta-box">
+            <h2>Ready to change the world?</h2>
+            <p>Join thousands of citizens, NGOs, and industries making an actual difference in their communities today.</p>
+            {!user ? (
+              <div className="cta-actions">
+                <Link to="/register" className="btn full" style={{ display: 'flex', justifyContent: 'center' }}>
+                  Create Account <ArrowRight size={17}/>
+                </Link>
+                <Link to="/login" className="btn secondary full" style={{ display: 'flex', justifyContent: 'center' }}>
+                  Sign In
+                </Link>
+              </div>
+            ) : (
+              <div className="cta-actions">
+                <Link to="/dashboard" className="btn full" style={{ display: 'flex', justifyContent: 'center' }}>
+                  Go to Dashboard <ArrowRight size={17}/>
+                </Link>
+              </div>
+            )}
           </div>
-          <h2>
-            One platform. Many hands.
-            <br />
-            <em>Real progress.</em>
-          </h2>
-        </div>
-        <div className="steps">
-          <Step
-            n="01"
-            icon={<CircleAlert />}
-            title="Share a civic issue"
-            text="Citizens and NGOs make local needs visible with a simple, structured report."
-          />
-          <Step
-            n="02"
-            icon={<BrainCircuit />}
-            title="Turn insight into clarity"
-            text="AI identifies the domain, priority and expertise needed to move forward."
-          />
-          <Step
-            n="03"
-            icon={<Users />}
-            title="Find the right collaborators"
-            text="Universities and industry partners are matched to challenges they can help solve."
-          />
-        </div>
+        </ScrollReveal>
       </section>
-    </>
+      
+    </div>
   );
 }
 
