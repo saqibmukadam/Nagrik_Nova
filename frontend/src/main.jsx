@@ -197,6 +197,7 @@ function App() {
   const { user } = auth;
   const [showExpired, setShowExpired] = useState(false);
 
+  // Handle session expiration
   useEffect(() => {
     const handleExpired = () => {
       auth.out(); 
@@ -205,6 +206,25 @@ function App() {
     window.addEventListener("session-expired", handleExpired);
     return () => window.removeEventListener("session-expired", handleExpired);
   }, [auth]);
+
+  // THE FIX: Force hide the injected "Enter VR Mode" button on PC screens
+  useEffect(() => {
+    const hideVRButton = setInterval(() => {
+      if (window.innerWidth >= 769) {
+        const buttons = Array.from(document.querySelectorAll('button'));
+        const vrBtn = buttons.find(b => b.textContent.includes('Enter VR Mode'));
+        
+        if (vrBtn) {
+          vrBtn.style.setProperty('display', 'none', 'important');
+          vrBtn.style.setProperty('visibility', 'hidden', 'important');
+          vrBtn.style.setProperty('opacity', '0', 'important');
+          vrBtn.style.setProperty('pointer-events', 'none', 'important');
+        }
+      }
+    }, 500); // Checks every half-second to catch it when WebXR injects it
+    
+    return () => clearInterval(hideVRButton);
+  }, []);
 
   return (
     <>
