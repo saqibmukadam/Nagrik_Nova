@@ -1213,10 +1213,6 @@ function Detail({ user }) {
   const [pledgeText, setPledgeText] = useState("");
   const [showPledgeForm, setShowPledgeForm] = useState(false);
 
-  // NEW: Robust scrolling state and ref
-  const analysisRef = useRef(null);
-  const [justAnalyzed, setJustAnalyzed] = useState(false);
-
   useEffect(() => {
     api
       .get("/issues/" + id)
@@ -1247,22 +1243,9 @@ function Detail({ user }) {
     }
   }, [issue, id, user]);
 
-  // THE FIX: Listen for 'busy' to turn false and 'justAnalyzed' to be true.
-  // This guarantees BOTH API calls are 100% finished before we attempt to scroll.
-  useEffect(() => {
-    if (justAnalyzed && !busy && issue?.analyzed) {
-      // Add a tiny 100ms delay just to let React paint the final DOM height
-      setTimeout(() => {
-        analysisRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
-      setJustAnalyzed(false); // Reset so it doesn't fire again
-    }
-  }, [busy, justAnalyzed, issue]);
-
   const analyze = async () => {
     setBusy(true);
     setErr("");
-    setJustAnalyzed(true); // Flag that we want to scroll once finished
 
     try {
       const r = await api.post(`/issues/${id}/analyze`);
@@ -1287,11 +1270,20 @@ function Detail({ user }) {
         console.error("Organization matching failed:", matchError);
       }
 
+      // Turn off loading UI immediately
+      setBusy(false);
+
+      // THE FIX: Use behavior 'auto' to bypass the Chromium animation bug and snap instantly to the section
+      setTimeout(() => {
+        const analysisSection = document.getElementById("analysis-section");
+        if (analysisSection) {
+          analysisSection.scrollIntoView({ behavior: 'auto', block: 'start' });
+        }
+      }, 10);
+
     } catch (e) {
       setErr(e.response?.data?.message || "Analysis could not be completed.");
-    } finally {
-      // THIS is what will safely trigger our scrolling useEffect!
-      setBusy(false); 
+      setBusy(false);
     }
   };
 
@@ -1441,7 +1433,7 @@ function Detail({ user }) {
         )}
       </div>
 
-      <div ref={analysisRef} id="analysis-section" style={{ scrollMarginTop: '80px' }}>
+      <div id="analysis-section" style={{ scrollMarginTop: '80px' }}>
         {issue.analyzed && issue.aiAnalysis ? (
           <Analysis issue={issue} />
         ) : (
