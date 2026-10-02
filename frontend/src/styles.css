@@ -1508,8 +1508,10 @@ body {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   color: #10b981;
-  padding: 0 24px;
   height: 50px;
+  min-width: 50px; /* Forces the circle base size */
+  max-width: 250px; /* Smoothly animatable bounds */
+  padding: 0 20px;
   border-radius: 25px;
   display: flex;
   align-items: center;
@@ -1519,7 +1521,6 @@ body {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2), inset 0 0 10px rgba(16, 185, 129, 0.1);
   transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   overflow: hidden;
-  max-width: 250px;
   white-space: nowrap;
 }
 
@@ -1531,20 +1532,9 @@ body {
 
 /* The dynamic shrunk state applied via React */
 .chat-widget-toggle.scrolled {
-  width: 50px;
-  min-width: 50px;
-  max-width: 50px;
+  max-width: 50px; /* Smoothly crunches the button down */
   padding: 0;
-  border-radius: 50%;
   gap: 0;
-  justify-content: center;
-}
-
-.chat-widget-toggle.scrolled .chat-text {
-  opacity: 0;
-  transform: scale(0.8) translateX(10px);
-  width: 0;
-  margin: 0;
 }
 
 .toggle-icon-wrapper {
@@ -1555,6 +1545,23 @@ body {
   min-width: 24px;
 }
 
+.chat-text {
+  font-weight: 600;
+  font-size: 15px;
+  opacity: 1;
+  max-width: 150px; /* Set an explicit max-width so the text collapses smoothly */
+  transform: scale(1) translateX(0);
+  transform-origin: left;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Hide the text smoothly */
+.chat-widget-toggle.scrolled .chat-text {
+  opacity: 0;
+  max-width: 0; /* Animates to 0 instead of snapping */
+  transform: scale(0.8) translateX(10px);
+  margin: 0;
+}
 .chat-text {
   font-weight: 600;
   font-size: 15px;
