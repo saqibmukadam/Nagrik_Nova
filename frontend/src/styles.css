@@ -2134,3 +2134,85 @@ body.dark-mode .mobile-dropdown-menu a {
   from { opacity: 0; transform: translateY(-10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* ========================================================= */
+/* 📸 BEFORE & AFTER SLIDER & UPLOADS                        */
+/* ========================================================= */
+.before-after-wrapper {
+  position: relative;
+  width: 100%;
+  height: 450px;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 30px;
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+.img-before, .img-after {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+.img-after {
+  clip-path: polygon(0 0, var(--pos) 0, var(--pos) 100%, 0 100%);
+}
+.slider-divider {
+  position: absolute;
+  top: 0; bottom: 0;
+  left: var(--pos);
+  width: 4px;
+  background: #10b981;
+  transform: translateX(-50%);
+  pointer-events: none;
+  box-shadow: 0 0 15px rgba(0,0,0,0.5);
+  z-index: 2;
+}
+.slider-handle {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px; height: 40px;
+  background: #10b981;
+  border: 2px solid white;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: white;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+.slider-input {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  opacity: 0;
+  cursor: ew-resize;
+  z-index: 3;
+  margin: 0;
+}
+.slider-label {
+  position: absolute;
+  top: 20px;
+  padding: 6px 12px;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  color: white;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  z-index: 1;
+  letter-spacing: 1px;
+}
+.label-before { right: 20px; }
+.label-after { left: 20px; background: rgba(16, 185, 129, 0.8); }
+
+/* Completion Upload UI */
+.completion-upload-box {
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px dashed rgba(16, 185, 129, 0.4);
+  padding: 20px;
+  border-radius: 12px;
+  margin-top: 15px;
+  text-align: center;
+}

@@ -23,7 +23,9 @@ import axios from "axios";
 import {
   ArrowRight,
   Menu, 
-  X,    
+  X,
+  ArrowLeftRight, 
+  Upload,    
   BrainCircuit,
   Building2,
   CheckCircle2,
@@ -1427,6 +1429,35 @@ function IssueTracker({ issue }) {
   );
 }
 
+// NEW: Before and After Slider Component
+function BeforeAfterSlider({ before, after }) {
+  const [pos, setPos] = useState(50);
+  
+  return (
+    <div className="before-after-wrapper" style={{ '--pos': `${pos}%` }}>
+      <div className="slider-label label-before">Before</div>
+      <div className="slider-label label-after">After</div>
+      
+      <img src={before} alt="Before Resolution" className="img-before" />
+      <img src={after} alt="After Resolution" className="img-after" />
+      
+      <div className="slider-divider">
+        <div className="slider-handle">
+          <ArrowLeftRight size={18} />
+        </div>
+      </div>
+      
+      <input 
+        type="range" 
+        min="0" max="100" 
+        value={pos} 
+        onChange={(e) => setPos(e.target.value)} 
+        className="slider-input" 
+      />
+    </div>
+  );
+}
+
 function Detail({ user }) {
   const { id } = useParams(),
     nav = useNavigate(),
@@ -1442,6 +1473,9 @@ function Detail({ user }) {
   
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState("");
+  
+  // NEW: State for the "After" resolution image
+  const [resolutionImage, setResolutionImage] = useState(null);
 
   useEffect(() => {
     api
@@ -1465,6 +1499,10 @@ function Detail({ user }) {
         
         const savedComments = JSON.parse(localStorage.getItem(`nn-comments-${id}`) || "[]");
         setComments(savedComments);
+
+        // Load the resolution image from localStorage (Fallback until backend supports it)
+        const savedResolution = localStorage.getItem(`nn-resolution-${id}`);
+        if (savedResolution) setResolutionImage(savedResolution);
 
         const savedUpvotes = parseInt(localStorage.getItem(`nn-upvotes-${id}`) || Math.floor(Math.random() * 12) + 2);
         setUpvotes(savedUpvotes);
@@ -1635,7 +1673,6 @@ function Detail({ user }) {
           </p>
         </div>
 
-        {/* MODIFIED: Access controls for Delete, Ban, and Analyze */}
         {(isAdmin || isOwner) && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'flex-end', marginTop: '10px' }}>
             {isAdmin && !issue.analyzed && (
@@ -1655,7 +1692,6 @@ function Detail({ user }) {
                 <Trash2 size={14} style={{ marginRight: '5px' }} /> Delete Issue
               </button>
               
-              {/* Ban button strictly for Admins on other users' posts */}
               {isAdmin && issue.submitted_by && !isOwner && (
                 <button 
                   onClick={() => handleBanUser(issue.submitted_by)} 
@@ -1671,11 +1707,14 @@ function Detail({ user }) {
         )}
       </div>
 
-      {issue.image_url && (
+      {/* MODIFIED: Display Before/After Slider if resolved, otherwise standard image */}
+      {issue.image_url && resolutionImage ? (
+        <BeforeAfterSlider before={issue.image_url} after={resolutionImage} />
+      ) : issue.image_url ? (
         <div style={{ width: '100%', maxHeight: '450px', borderRadius: '16px', overflow: 'hidden', marginBottom: '30px', border: '1px solid rgba(255,255,255,0.1)' }}>
           <img src={issue.image_url} alt="Evidence" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </div>
-      )}
+      ) : null}
 
       <IssueTracker issue={issue} />
 
@@ -1750,7 +1789,6 @@ function Detail({ user }) {
                     {c.author} 
                     <span style={{ fontSize: '10px', padding: '2px 8px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', borderRadius: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{c.role}</span>
                     
-                    {/* MODIFIED: Allow Admin OR the comment's Author to delete it */}
                     {(user.role === 'admin' || c.author === user.name) && (
                       <button 
                         onClick={() => handleDeleteComment(c.id)} 
@@ -1810,6 +1848,10 @@ function OrganizationDashboard({ user }) {
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  
+  // NEW: States for uploading resolution images
+  const [completingId, setCompletingId] = useState(null);
+  const [resolutionPreview, setResolutionPreview] = useState(null);
 
   const loadChallenges = async () => {
     try {
@@ -1817,21 +1859,13 @@ function OrganizationDashboard({ user }) {
       setError("");
 
       const response = await api.get("/challenges");
-
       const allChallenges = response.data || [];
-
-      const assigned = allChallenges.filter(
-        (challenge) => challenge.my_assignment
-      );
+      const assigned = allChallenges.filter((challenge) => challenge.my_assignment);
 
       setChallenges(assigned);
     } catch (err) {
       console.error(err);
-
-      setError(
-        err.response?.data?.message ||
-        "Could not load your challenges."
-      );
+      setError(err.response?.data?.message || "Could not load your challenges.");
     } finally {
       setLoading(false);
     }
@@ -1841,365 +1875,176 @@ function OrganizationDashboard({ user }) {
     loadChallenges();
   }, [user.id]);
 
-  const updateProgress = async (
-    challengeId,
-    status
-  ) => {
+  // NEW: Handle the After photo upload and compression
+  const handleResolutionUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const MAX_WIDTH = 1200;
+        let width = img.width, height = img.height;
+        if (width > MAX_WIDTH) { height = Math.round((height * MAX_WIDTH) / width); width = MAX_WIDTH; }
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        setResolutionPreview(canvas.toDataURL("image/jpeg", 0.7));
+      };
+    };
+  };
+
+  const updateProgress = async (challengeId, status, issueId) => {
     try {
       setBusy(`${challengeId}-${status}`);
       setError("");
       setSuccess("");
+      
+      // If marking complete, save the photo to localStorage so the Detail page can see it instantly
+      if (status === "Completed" && resolutionPreview && issueId) {
+        localStorage.setItem(`nn-resolution-${issueId}`, resolutionPreview);
+      }
 
-      await api.patch(
-        `/challenges/${challengeId}/progress`,
-        { status }
-      );
+      await api.patch(`/challenges/${challengeId}/progress`, { status });
 
-      setSuccess(
-        status === "Completed"
-          ? "Challenge marked as completed."
-          : `Challenge moved to ${status}.`
-      );
-
+      setSuccess(status === "Completed" ? "Challenge marked as completed." : `Challenge moved to ${status}.`);
+      setCompletingId(null);
+      setResolutionPreview(null);
       await loadChallenges();
     } catch (err) {
       console.error(err);
-
-      setError(
-        err.response?.data?.message ||
-        "Could not update challenge progress."
-      );
+      setError(err.response?.data?.message || "Could not update challenge progress.");
     } finally {
       setBusy("");
     }
   };
 
-  if (loading) {
-    return <Loading />;
-  }
+  if (loading) return <Loading />;
 
   return (
     <section className="page organization-dashboard">
       <div className="detail-top">
         <div>
           <p className="eyebrow">
-            {user.role === "university"
-              ? "UNIVERSITY"
-              : user.role === "industry"
-                ? "INDUSTRY"
-                : "NGO"}{" "}
-            WORKSPACE
+            {user.role === "university" ? "UNIVERSITY" : user.role === "industry" ? "INDUSTRY" : "NGO"} WORKSPACE
           </p>
-
           <h1>My Civic Challenges</h1>
-
-          <p className="lead">
-            View challenges assigned to your organization
-            and keep their progress updated.
-          </p>
+          <p className="lead">View challenges assigned to your organization and keep their progress updated.</p>
         </div>
       </div>
 
-      {error && (
-        <div className="error">
-          {error}
-        </div>
-      )}
-
-      {success && (
-        <div className="success">
-          {success}
-        </div>
-      )}
+      {error && <div className="error">{error}</div>}
+      {success && <div className="success">{success}</div>}
 
       <div className="organization-stats">
-        <div className="stat-card">
-          <span>Assigned</span>
-
-          <strong>
-            {
-              challenges.filter(
-                (c) =>
-                  c.my_assignment_status ===
-                  "Assigned"
-              ).length
-            }
-          </strong>
-        </div>
-
-        <div className="stat-card">
-          <span>Accepted</span>
-
-          <strong>
-            {
-              challenges.filter(
-                (c) =>
-                  c.my_assignment_status ===
-                  "Accepted"
-              ).length
-            }
-          </strong>
-        </div>
-
-        <div className="stat-card">
-          <span>In Progress</span>
-
-          <strong>
-            {
-              challenges.filter(
-                (c) =>
-                  c.my_assignment_status ===
-                  "In Progress"
-              ).length
-            }
-          </strong>
-        </div>
-
-        <div className="stat-card">
-          <span>Completed</span>
-
-          <strong>
-            {
-              challenges.filter(
-                (c) =>
-                  c.my_assignment_status ===
-                  "Completed"
-              ).length
-            }
-          </strong>
-        </div>
+        <div className="stat-card"><span>Assigned</span><strong>{challenges.filter((c) => c.my_assignment_status === "Assigned").length}</strong></div>
+        <div className="stat-card"><span>Accepted</span><strong>{challenges.filter((c) => c.my_assignment_status === "Accepted").length}</strong></div>
+        <div className="stat-card"><span>In Progress</span><strong>{challenges.filter((c) => c.my_assignment_status === "In Progress").length}</strong></div>
+        <div className="stat-card"><span>Completed</span><strong>{challenges.filter((c) => c.my_assignment_status === "Completed").length}</strong></div>
       </div>
 
       <div className="organization-challenge-list">
         {challenges.map((challenge) => {
-          const status =
-            challenge.my_assignment_status ||
-            "Assigned";
-
-          const stages = [
-            "Assigned",
-            "Accepted",
-            "In Progress",
-            "Completed",
-          ];
-
-          const currentIndex =
-            stages.indexOf(status);
+          const status = challenge.my_assignment_status || "Assigned";
+          const stages = ["Assigned", "Accepted", "In Progress", "Completed"];
+          const currentIndex = stages.indexOf(status);
 
           return (
-            <div
-              className="challenge-progress-card"
-              key={challenge.id}
-            >
+            <div className="challenge-progress-card" key={challenge.id}>
               <div className="challenge-progress-header">
                 <div>
-                  <span className="challenge-domain">
-                    {challenge.domain || "Civic Challenge"}
-                  </span>
-
+                  <span className="challenge-domain">{challenge.domain || "Civic Challenge"}</span>
                   <h3>{challenge.title}</h3>
                 </div>
-
-                <span
-                  className={`challenge-status ${(
-                    challenge.my_assignment_status ||
-                    "Assigned"
-                  )
-                    .toLowerCase()
-                    .replace(/\s+/g, "-")
-                    }`}
-                >
+                <span className={`challenge-status ${(challenge.my_assignment_status || "Assigned").toLowerCase().replace(/\s+/g, "-")}`}>
                   {challenge.my_assignment_status || "Assigned"}
                 </span>
               </div>
 
-              <p>
-                {challenge.problem_statement ||
-                  challenge.description}
-              </p>
+              <p>{challenge.problem_statement || challenge.description}</p>
 
               {challenge.expected_outcome && (
                 <div className="challenge-detail">
                   <strong>Expected outcome</strong>
-
-                  <p>
-                    {challenge.expected_outcome}
-                  </p>
+                  <p>{challenge.expected_outcome}</p>
                 </div>
               )}
 
               <div className="challenge-progress">
-                {[
-                  "Assigned",
-                  "Accepted",
-                  "In Progress",
-                  "Completed",
-                ].map((stage, index) => {
-                  const currentIndex = [
-                    "Assigned",
-                    "Accepted",
-                    "In Progress",
-                    "Completed",
-                  ].indexOf(
-                    challenge.my_assignment_status ||
-                    "Assigned"
-                  );
-
-                  const isCompleted =
-                    currentIndex >= index;
-
-                  const isCurrent =
-                    currentIndex === index;
-
+                {stages.map((stage, index) => {
+                  const isCompleted = currentIndex >= index;
+                  const isCurrent = currentIndex === index;
                   return (
                     <React.Fragment key={stage}>
-                      <div
-                        className={`progress-stage ${isCompleted ? "completed" : ""
-                          } ${isCurrent ? "current" : ""
-                          }`}
-                      >
+                      <div className={`progress-stage ${isCompleted ? "completed" : ""} ${isCurrent ? "current" : ""}`}>
                         <div className="progress-circle">
-                          {isCompleted ? (
-                            <CheckCircle2 size={17} />
-                          ) : (
-                            <span>{index + 1}</span>
-                          )}
+                          {isCompleted ? <CheckCircle2 size={17} /> : <span>{index + 1}</span>}
                         </div>
-
                         <span>{stage}</span>
                       </div>
-
-                      {index < 3 && (
-                        <div
-                          className={`progress-line ${currentIndex > index
-                            ? "completed"
-                            : ""
-                            }`}
-                        />
-                      )}
+                      {index < 3 && <div className={`progress-line ${currentIndex > index ? "completed" : ""}`} />}
                     </React.Fragment>
                   );
                 })}
               </div>
 
               <div className="organization-challenge-actions">
+                {status === "Assigned" && (
+                  <button className="btn" disabled={busy === `${challenge.id}-Accepted`} onClick={() => updateProgress(challenge.id, "Accepted")}>
+                    {busy === `${challenge.id}-Accepted` ? "Accepting..." : "Accept Challenge"}
+                  </button>
+                )}
 
-                {challenge.my_assignment_status ===
-                  "Assigned" && (
-                    <button
-                      className="btn"
-                      disabled={
-                        busy ===
-                        `${challenge.id}-Accepted`
-                      }
-                      onClick={() =>
-                        updateProgress(
-                          challenge.id,
-                          "Accepted"
-                        )
-                      }
-                    >
-                      {busy ===
-                        `${challenge.id}-Accepted`
-                        ? "Accepting..."
-                        : "Accept Challenge"}
-                    </button>
-                  )}
+                {status === "Accepted" && (
+                  <button className="btn" disabled={busy === `${challenge.id}-In Progress`} onClick={() => updateProgress(challenge.id, "In Progress")}>
+                    {busy === `${challenge.id}-In Progress` ? "Starting..." : "Start Work"}
+                  </button>
+                )}
 
-                {challenge.my_assignment_status ===
-                  "Accepted" && (
-                    <button
-                      className="btn"
-                      disabled={
-                        busy ===
-                        `${challenge.id}-In Progress`
-                      }
-                      onClick={() =>
-                        updateProgress(
-                          challenge.id,
-                          "In Progress"
-                        )
-                      }
-                    >
-                      {busy ===
-                        `${challenge.id}-In Progress`
-                        ? "Starting..."
-                        : "Start Work"}
-                    </button>
-                  )}
+                {status === "In Progress" && completingId !== challenge.id && (
+                  <button className="btn" onClick={() => setCompletingId(challenge.id)}>
+                    <CheckCircle2 size={16} style={{marginRight: '6px'}}/> Mark Completed
+                  </button>
+                )}
+                
+                {/* NEW: Completion Upload UI Box */}
+                {completingId === challenge.id && (
+                  <div className="completion-upload-box">
+                    <h4 style={{ margin: '0 0 10px 0', color: '#10b981' }}>Upload Resolution Proof</h4>
+                    <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '15px' }}>
+                      To mark this as resolved, upload a photo of the completed work. This will be shown to citizens as a Before & After slider.
+                    </p>
+                    
+                    {!resolutionPreview ? (
+                      <label className="btn small" style={{ display: 'inline-flex', cursor: 'pointer', background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', border: '1px solid #10b981' }}>
+                        <Upload size={16} /> Choose Photo
+                        <input type="file" accept="image/*" onChange={handleResolutionUpload} style={{ display: 'none' }} />
+                      </label>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
+                        <img src={resolutionPreview} alt="Preview" style={{ width: '100%', maxWidth: '300px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                          <button className="btn small secondary" onClick={() => setResolutionPreview(null)}>Retake</button>
+                          <button className="btn small" disabled={busy === `${challenge.id}-Completed`} onClick={() => updateProgress(challenge.id, "Completed", challenge.issue_id)}>
+                            {busy === `${challenge.id}-Completed` ? "Completing..." : "Confirm Resolution"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    <button className="text-btn" style={{ display: 'block', margin: '15px auto 0' }} onClick={() => { setCompletingId(null); setResolutionPreview(null); }}>Cancel</button>
+                  </div>
+                )}
 
-                {challenge.my_assignment_status ===
-                  "In Progress" && (
-                    <button
-                      className="btn"
-                      disabled={
-                        busy ===
-                        `${challenge.id}-Completed`
-                      }
-                      onClick={() =>
-                        updateProgress(
-                          challenge.id,
-                          "Completed"
-                        )
-                      }
-                    >
-                      {busy ===
-                        `${challenge.id}-Completed`
-                        ? "Completing..."
-                        : "Mark Completed"}
-                    </button>
-                  )}
-
-                {challenge.my_assignment_status ===
-                  "Completed" && (
-                    <div className="success-badge">
-                      <CheckCircle2 size={16} />
-                      Challenge completed
-                    </div>
-                  )}
-
+                {status === "Completed" && (
+                  <div className="success-badge">
+                    <CheckCircle2 size={16} /> Challenge completed
+                  </div>
+                )}
               </div>
-
-              {challenge.my_assignment_status ===
-                "Assigned" && (
-                  <div className="progress-message">
-                    <ArrowRight size={17} />
-
-                    This challenge has been assigned
-                    to your organization. Accept it to
-                    begin working.
-                  </div>
-                )}
-
-              {challenge.my_assignment_status ===
-                "Accepted" && (
-                  <div className="progress-message">
-                    <CheckCircle2 size={17} />
-
-                    You have accepted this challenge.
-                    Start work when you are ready.
-                  </div>
-                )}
-
-              {challenge.my_assignment_status ===
-                "In Progress" && (
-                  <div className="progress-message active-message">
-                    <LoaderCircle size={17} />
-
-                    Your organization is currently
-                    working on this challenge.
-                  </div>
-                )}
-
-              {challenge.my_assignment_status ===
-                "Completed" && (
-                  <div className="progress-message completed-message">
-                    <CheckCircle2 size={17} />
-
-                    Your organization has completed
-                    this challenge.
-                  </div>
-                )}
             </div>
           );
         })}
@@ -2207,16 +2052,8 @@ function OrganizationDashboard({ user }) {
         {!challenges.length && (
           <div className="empty">
             <Building2 size={28} />
-
-            <h3>
-              No challenges assigned yet
-            </h3>
-
-            <p>
-              When an administrator assigns a
-              civic challenge to your organization,
-              it will appear here.
-            </p>
+            <h3>No challenges assigned yet</h3>
+            <p>When an administrator assigns a civic challenge to your organization, it will appear here.</p>
           </div>
         )}
       </div>
