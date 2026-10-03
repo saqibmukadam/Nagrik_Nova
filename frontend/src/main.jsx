@@ -24,6 +24,8 @@ import {
   ArrowRight,
   Menu, 
   X,
+  FileDown, 
+  Globe,
   ArrowLeftRight, 
   Upload,    
   BrainCircuit,
@@ -1643,7 +1645,7 @@ function Detail({ user }) {
 
   return (
     <section className="page detail">
-      <Link className="back" to="/issues">
+      <Link className="back print-hide" to="/issues">
         ← Back to issue board
       </Link>
 
@@ -1651,17 +1653,12 @@ function Detail({ user }) {
         <div>
           <div className="issue-meta">
             <span className="role">{issue.submitter_role}</span>
-
             {issue.analyzed ? (
-              <span
-                className={`priority ${issue.priority?.toLowerCase()}`}
-              >
+              <span className={`priority ${issue.priority?.toLowerCase()}`}>
                 {issue.priority} priority
               </span>
             ) : (
-              <span className="pending">
-                Awaiting analysis
-              </span>
+              <span className="pending">Awaiting analysis</span>
             )}
           </div>
 
@@ -1671,10 +1668,20 @@ function Detail({ user }) {
             <MapPin size={17} />
             {issue.street}, {issue.city}, {issue.state}
           </p>
+
+          {/* NEW: PDF EXPORT BUTTON */}
+          <button 
+            className="btn small print-hide" 
+            onClick={() => window.print()}
+            style={{ marginTop: '15px', background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid rgba(255,255,255,0.2)' }}
+          >
+            <FileDown size={14} style={{ marginRight: '6px' }} /> Export Formal PDF Grievance
+          </button>
         </div>
 
+        {/* Hide admin controls from the printed PDF */}
         {(isAdmin || isOwner) && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'flex-end', marginTop: '10px' }}>
+          <div className="print-hide" style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'flex-end', marginTop: '10px' }}>
             {isAdmin && !issue.analyzed && (
               <button className="btn analyze" disabled={busy} onClick={analyze}>
                 {busy ? <LoaderCircle className="spin" size={17} /> : <BrainCircuit size={18} />}
@@ -1731,7 +1738,7 @@ function Detail({ user }) {
 
         {["citizen", "ngo"].includes(user.role) && (
           <button 
-            className={`btn full ${hasUpvoted ? "upvoted" : "upvote-btn"}`} 
+            className={`btn full ${hasUpvoted ? "upvoted" : "upvote-btn"} print-hide`} 
             onClick={handleUpvote}
             disabled={hasUpvoted}
           >
@@ -1740,7 +1747,7 @@ function Detail({ user }) {
         )}
 
         {["university", "industry"].includes(user.role) && (
-          <div className="pledge-section">
+          <div className="pledge-section print-hide">
             {!showPledgeForm ? (
               <button className="btn full pledge-btn" onClick={() => setShowPledgeForm(true)}>
                 <HandHeart size={18} /> Pledge Resources or Expertise
@@ -1775,7 +1782,7 @@ function Detail({ user }) {
         )}
       </div>
 
-      <div className="comments-section" style={{ marginTop: '40px', background: 'rgba(255,255,255,0.02)', padding: '30px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+      <div className="comments-section print-hide" style={{ marginTop: '40px', background: 'rgba(255,255,255,0.02)', padding: '30px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
         <div className="impact-header" style={{ marginBottom: '25px' }}>
           <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}><MessageSquare size={18} /> Discussion Board</h3>
           <span className="upvote-count">{comments.length} Comments</span>
@@ -1844,12 +1851,14 @@ function Detail({ user }) {
 
 function OrganizationDashboard({ user }) {
   const [challenges, setChallenges] = useState([]);
+  const [openChallenges, setOpenChallenges] = useState([]); // NEW: Open Board State
+  const [activeTab, setActiveTab] = useState("assigned");   // NEW: Tab State
+  
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   
-  // NEW: States for uploading resolution images
   const [completingId, setCompletingId] = useState(null);
   const [resolutionPreview, setResolutionPreview] = useState(null);
 
@@ -1860,9 +1869,15 @@ function OrganizationDashboard({ user }) {
 
       const response = await api.get("/challenges");
       const allChallenges = response.data || [];
+
+      // 1. Challenges already assigned to this university
       const assigned = allChallenges.filter((challenge) => challenge.my_assignment);
+      
+      // 2. Challenges that are open and unassigned
+      const unassigned = allChallenges.filter((challenge) => !challenge.my_assignment && challenge.status === "Open");
 
       setChallenges(assigned);
+      setOpenChallenges(unassigned);
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.message || "Could not load your challenges.");
@@ -1875,11 +1890,9 @@ function OrganizationDashboard({ user }) {
     loadChallenges();
   }, [user.id]);
 
-  // NEW: Handle the After photo upload and compression
   const handleResolutionUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = (event) => {
@@ -1904,7 +1917,6 @@ function OrganizationDashboard({ user }) {
       setError("");
       setSuccess("");
       
-      // If marking complete, save the photo to localStorage so the Detail page can see it instantly
       if (status === "Completed" && resolutionPreview && issueId) {
         localStorage.setItem(`nn-resolution-${issueId}`, resolutionPreview);
       }
@@ -1923,6 +1935,27 @@ function OrganizationDashboard({ user }) {
     }
   };
 
+  // NEW: Claim Challenge Bypass Function
+  const claimChallenge = async (challengeId) => {
+    try {
+      setBusy(`claim-${challengeId}`);
+      setError("");
+      
+      await api.post(`/challenges/${challengeId}/assign`, {
+        organization_user_id: user.id || user._id,
+      });
+
+      setSuccess("Challenge successfully claimed! It is now in your workspace.");
+      await loadChallenges();
+      setActiveTab("assigned");
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.message || "Could not claim challenge.");
+    } finally {
+      setBusy("");
+    }
+  };
+
   if (loading) return <Loading />;
 
   return (
@@ -1933,130 +1966,167 @@ function OrganizationDashboard({ user }) {
             {user.role === "university" ? "UNIVERSITY" : user.role === "industry" ? "INDUSTRY" : "NGO"} WORKSPACE
           </p>
           <h1>My Civic Challenges</h1>
-          <p className="lead">View challenges assigned to your organization and keep their progress updated.</p>
+          <p className="lead">Manage your active projects or browse the open board to claim new challenges.</p>
         </div>
       </div>
 
-      {error && <div className="error">{error}</div>}
-      {success && <div className="success">{success}</div>}
+      {error && <div className="error" style={{ marginBottom: '20px' }}>{error}</div>}
+      {success && <div className="success" style={{ marginBottom: '20px' }}>{success}</div>}
 
-      <div className="organization-stats">
-        <div className="stat-card"><span>Assigned</span><strong>{challenges.filter((c) => c.my_assignment_status === "Assigned").length}</strong></div>
-        <div className="stat-card"><span>Accepted</span><strong>{challenges.filter((c) => c.my_assignment_status === "Accepted").length}</strong></div>
-        <div className="stat-card"><span>In Progress</span><strong>{challenges.filter((c) => c.my_assignment_status === "In Progress").length}</strong></div>
-        <div className="stat-card"><span>Completed</span><strong>{challenges.filter((c) => c.my_assignment_status === "Completed").length}</strong></div>
+      {/* NEW: Navigation Tabs */}
+      <div style={{ display: 'flex', gap: '15px', marginBottom: '30px' }}>
+        <button 
+          className={`btn ${activeTab === 'assigned' ? '' : 'secondary'}`} 
+          onClick={() => setActiveTab("assigned")}
+        >
+          <Building2 size={16} /> My Workspace ({challenges.length})
+        </button>
+        <button 
+          className={`btn ${activeTab === 'open' ? '' : 'secondary'}`} 
+          onClick={() => setActiveTab("open")}
+        >
+          <Globe size={16} /> Open Challenge Board ({openChallenges.length})
+        </button>
       </div>
 
-      <div className="organization-challenge-list">
-        {challenges.map((challenge) => {
-          const status = challenge.my_assignment_status || "Assigned";
-          const stages = ["Assigned", "Accepted", "In Progress", "Completed"];
-          const currentIndex = stages.indexOf(status);
+      {activeTab === "assigned" ? (
+        <>
+          <div className="organization-stats">
+            <div className="stat-card"><span>Assigned</span><strong>{challenges.filter((c) => c.my_assignment_status === "Assigned").length}</strong></div>
+            <div className="stat-card"><span>Accepted</span><strong>{challenges.filter((c) => c.my_assignment_status === "Accepted").length}</strong></div>
+            <div className="stat-card"><span>In Progress</span><strong>{challenges.filter((c) => c.my_assignment_status === "In Progress").length}</strong></div>
+            <div className="stat-card"><span>Completed</span><strong>{challenges.filter((c) => c.my_assignment_status === "Completed").length}</strong></div>
+          </div>
 
-          return (
-            <div className="challenge-progress-card" key={challenge.id}>
+          <div className="organization-challenge-list">
+            {challenges.map((challenge) => {
+              const status = challenge.my_assignment_status || "Assigned";
+              const stages = ["Assigned", "Accepted", "In Progress", "Completed"];
+              const currentIndex = stages.indexOf(status);
+
+              return (
+                <div className="challenge-progress-card" key={challenge.id}>
+                  <div className="challenge-progress-header">
+                    <div>
+                      <span className="challenge-domain">{challenge.domain || "Civic Challenge"}</span>
+                      <h3>{challenge.title}</h3>
+                    </div>
+                    <span className={`challenge-status ${(challenge.my_assignment_status || "Assigned").toLowerCase().replace(/\s+/g, "-")}`}>
+                      {challenge.my_assignment_status || "Assigned"}
+                    </span>
+                  </div>
+
+                  <p>{challenge.problem_statement || challenge.description}</p>
+
+                  <div className="challenge-progress" style={{ marginTop: '20px' }}>
+                    {stages.map((stage, index) => {
+                      const isCompleted = currentIndex >= index;
+                      const isCurrent = currentIndex === index;
+                      return (
+                        <React.Fragment key={stage}>
+                          <div className={`progress-stage ${isCompleted ? "completed" : ""} ${isCurrent ? "current" : ""}`}>
+                            <div className="progress-circle">
+                              {isCompleted ? <CheckCircle2 size={17} /> : <span>{index + 1}</span>}
+                            </div>
+                            <span>{stage}</span>
+                          </div>
+                          {index < 3 && <div className={`progress-line ${currentIndex > index ? "completed" : ""}`} />}
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
+
+                  <div className="organization-challenge-actions">
+                    {status === "Assigned" && (
+                      <button className="btn" disabled={busy === `${challenge.id}-Accepted`} onClick={() => updateProgress(challenge.id, "Accepted")}>
+                        {busy === `${challenge.id}-Accepted` ? "Accepting..." : "Accept Challenge"}
+                      </button>
+                    )}
+                    {status === "Accepted" && (
+                      <button className="btn" disabled={busy === `${challenge.id}-In Progress`} onClick={() => updateProgress(challenge.id, "In Progress")}>
+                        {busy === `${challenge.id}-In Progress` ? "Starting..." : "Start Work"}
+                      </button>
+                    )}
+                    {status === "In Progress" && completingId !== challenge.id && (
+                      <button className="btn" onClick={() => setCompletingId(challenge.id)}>
+                        <CheckCircle2 size={16} style={{marginRight: '6px'}}/> Mark Completed
+                      </button>
+                    )}
+                    
+                    {completingId === challenge.id && (
+                      <div className="completion-upload-box">
+                        <h4 style={{ margin: '0 0 10px 0', color: '#10b981' }}>Upload Resolution Proof</h4>
+                        <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '15px' }}>
+                          To mark this as resolved, upload a photo of the completed work. This will be shown to citizens as a Before & After slider.
+                        </p>
+                        
+                        {!resolutionPreview ? (
+                          <label className="btn small" style={{ display: 'inline-flex', cursor: 'pointer', background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', border: '1px solid #10b981' }}>
+                            <Upload size={16} /> Choose Photo
+                            <input type="file" accept="image/*" onChange={handleResolutionUpload} style={{ display: 'none' }} />
+                          </label>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
+                            <img src={resolutionPreview} alt="Preview" style={{ width: '100%', maxWidth: '300px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                              <button className="btn small secondary" onClick={() => setResolutionPreview(null)}>Retake</button>
+                              <button className="btn small" disabled={busy === `${challenge.id}-Completed`} onClick={() => updateProgress(challenge.id, "Completed", challenge.issue_id)}>
+                                {busy === `${challenge.id}-Completed` ? "Completing..." : "Confirm Resolution"}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        <button className="text-btn" style={{ display: 'block', margin: '15px auto 0' }} onClick={() => { setCompletingId(null); setResolutionPreview(null); }}>Cancel</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            {!challenges.length && (
+              <div className="empty">
+                <Building2 size={28} />
+                <h3>No active challenges</h3>
+                <p>Switch to the Open Challenge Board to find projects to claim.</p>
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <div className="organization-challenge-list">
+          {openChallenges.map((challenge) => (
+            <div className="challenge-progress-card" key={challenge.id} style={{ borderLeft: '4px solid #3b82f6' }}>
               <div className="challenge-progress-header">
                 <div>
                   <span className="challenge-domain">{challenge.domain || "Civic Challenge"}</span>
                   <h3>{challenge.title}</h3>
                 </div>
-                <span className={`challenge-status ${(challenge.my_assignment_status || "Assigned").toLowerCase().replace(/\s+/g, "-")}`}>
-                  {challenge.my_assignment_status || "Assigned"}
-                </span>
+                <span className="challenge-status pending">Open for Claim</span>
               </div>
-
               <p>{challenge.problem_statement || challenge.description}</p>
-
-              {challenge.expected_outcome && (
-                <div className="challenge-detail">
-                  <strong>Expected outcome</strong>
-                  <p>{challenge.expected_outcome}</p>
-                </div>
-              )}
-
-              <div className="challenge-progress">
-                {stages.map((stage, index) => {
-                  const isCompleted = currentIndex >= index;
-                  const isCurrent = currentIndex === index;
-                  return (
-                    <React.Fragment key={stage}>
-                      <div className={`progress-stage ${isCompleted ? "completed" : ""} ${isCurrent ? "current" : ""}`}>
-                        <div className="progress-circle">
-                          {isCompleted ? <CheckCircle2 size={17} /> : <span>{index + 1}</span>}
-                        </div>
-                        <span>{stage}</span>
-                      </div>
-                      {index < 3 && <div className={`progress-line ${currentIndex > index ? "completed" : ""}`} />}
-                    </React.Fragment>
-                  );
-                })}
-              </div>
-
-              <div className="organization-challenge-actions">
-                {status === "Assigned" && (
-                  <button className="btn" disabled={busy === `${challenge.id}-Accepted`} onClick={() => updateProgress(challenge.id, "Accepted")}>
-                    {busy === `${challenge.id}-Accepted` ? "Accepting..." : "Accept Challenge"}
-                  </button>
-                )}
-
-                {status === "Accepted" && (
-                  <button className="btn" disabled={busy === `${challenge.id}-In Progress`} onClick={() => updateProgress(challenge.id, "In Progress")}>
-                    {busy === `${challenge.id}-In Progress` ? "Starting..." : "Start Work"}
-                  </button>
-                )}
-
-                {status === "In Progress" && completingId !== challenge.id && (
-                  <button className="btn" onClick={() => setCompletingId(challenge.id)}>
-                    <CheckCircle2 size={16} style={{marginRight: '6px'}}/> Mark Completed
-                  </button>
-                )}
-                
-                {/* NEW: Completion Upload UI Box */}
-                {completingId === challenge.id && (
-                  <div className="completion-upload-box">
-                    <h4 style={{ margin: '0 0 10px 0', color: '#10b981' }}>Upload Resolution Proof</h4>
-                    <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '15px' }}>
-                      To mark this as resolved, upload a photo of the completed work. This will be shown to citizens as a Before & After slider.
-                    </p>
-                    
-                    {!resolutionPreview ? (
-                      <label className="btn small" style={{ display: 'inline-flex', cursor: 'pointer', background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', border: '1px solid #10b981' }}>
-                        <Upload size={16} /> Choose Photo
-                        <input type="file" accept="image/*" onChange={handleResolutionUpload} style={{ display: 'none' }} />
-                      </label>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
-                        <img src={resolutionPreview} alt="Preview" style={{ width: '100%', maxWidth: '300px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
-                        <div style={{ display: 'flex', gap: '10px' }}>
-                          <button className="btn small secondary" onClick={() => setResolutionPreview(null)}>Retake</button>
-                          <button className="btn small" disabled={busy === `${challenge.id}-Completed`} onClick={() => updateProgress(challenge.id, "Completed", challenge.issue_id)}>
-                            {busy === `${challenge.id}-Completed` ? "Completing..." : "Confirm Resolution"}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                    <button className="text-btn" style={{ display: 'block', margin: '15px auto 0' }} onClick={() => { setCompletingId(null); setResolutionPreview(null); }}>Cancel</button>
-                  </div>
-                )}
-
-                {status === "Completed" && (
-                  <div className="success-badge">
-                    <CheckCircle2 size={16} /> Challenge completed
-                  </div>
-                )}
+              
+              <div className="organization-challenge-actions" style={{ marginTop: '20px' }}>
+                <button 
+                  className="btn full" 
+                  disabled={busy === `claim-${challenge.id}`} 
+                  onClick={() => claimChallenge(challenge.id)}
+                  style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', border: '1px solid #3b82f6', justifyContent: 'center' }}
+                >
+                  {busy === `claim-${challenge.id}` ? <LoaderCircle className="spin" size={16} /> : <HandHeart size={16} />}
+                  {busy === `claim-${challenge.id}` ? "Claiming..." : "Claim This Challenge"}
+                </button>
               </div>
             </div>
-          );
-        })}
-
-        {!challenges.length && (
-          <div className="empty">
-            <Building2 size={28} />
-            <h3>No challenges assigned yet</h3>
-            <p>When an administrator assigns a civic challenge to your organization, it will appear here.</p>
-          </div>
-        )}
-      </div>
+          ))}
+          {!openChallenges.length && (
+            <div className="empty">
+              <CheckCircle2 size={28} />
+              <h3>No open challenges</h3>
+              <p>All current civic issues have been assigned to organizations.</p>
+            </div>
+          )}
+        </div>
+      )}
     </section>
   );
 }

@@ -2216,3 +2216,61 @@ body.dark-mode .mobile-dropdown-menu a {
   margin-top: 15px;
   text-align: center;
 }
+
+/* ========================================================= */
+/* 📄 FORMAL PDF GENERATOR (PRINT STYLES)                    */
+/* ========================================================= */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  /* Hide all UI elements not needed in the formal report */
+  header, footer, nav, .chat-widget-container, .print-hide, 
+  .cursor-companion, .pledge-section, .comments-section, 
+  .before-after-wrapper, .detail-top button { 
+    display: none !important; 
+  }
+  
+  .page.detail {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: transparent !important;
+  }
+  
+  /* Inject Formal Municipal Header */
+  .page.detail::before {
+    content: "OFFICIAL CIVIC GRIEVANCE REPORT\nGenerated via Nagrik Nova Civic Network\n\nTo the Municipal Commissioner,\nPlease find the verified details of the reported civic hazard below:";
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    line-height: 1.5;
+    font-weight: 700;
+    border-bottom: 2px solid black;
+    display: block;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    white-space: pre-wrap;
+  }
+  
+  .issue-meta, .community-impact {
+    border: 1px solid #ccc !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  
+  .analysis {
+    border: 2px solid black !important;
+    background: transparent !important;
+    page-break-inside: avoid; /* Prevents AI analysis box from splitting across pages */
+  }
+  
+  * {
+    color: black !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+  }
+}
