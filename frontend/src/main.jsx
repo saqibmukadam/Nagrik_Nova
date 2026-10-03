@@ -22,6 +22,8 @@ import {
 import axios from "axios";
 import {
   ArrowRight,
+  Menu, 
+  X,    
   BrainCircuit,
   Building2,
   CheckCircle2,
@@ -294,6 +296,8 @@ function Require({ user, children }) {
 }
 
 function Nav({ auth }) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   const getAddRoute = () => {
     if (!auth.user) return "/login";
     if (auth.user.role === "admin") return "/admin";
@@ -301,21 +305,48 @@ function Nav({ auth }) {
     return "/dashboard";
   };
 
+  const closeMenu = () => setIsMenuOpen(false);
+
   return (
     <header>
+      {/* --- MOBILE TOP BAR: LEFT (Hamburger Menu) --- */}
       <div className="mobile-only mobile-top-left" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-        {auth.user && auth.user.role === "admin" && (
-          <NavLink 
-            to="/vr-map" 
-            title="VR Command Center" 
-            style={{ display: 'flex', alignItems: 'center', padding: '6px', background: 'rgba(16, 185, 129, 0.15)', borderRadius: '8px', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.4)' }}
-          >
-            <Sparkles size={18} />
-          </NavLink>
+        <button 
+          className="text-btn" 
+          onClick={() => setIsMenuOpen(!isMenuOpen)} 
+          style={{ padding: '5px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          {isMenuOpen ? <X size={24} className="mobile-icon-color" /> : <Menu size={24} className="mobile-icon-color" />}
+        </button>
+
+        {/* Mobile Dropdown Menu for hidden desktop items */}
+        {isMenuOpen && (
+          <div className="mobile-dropdown-menu">
+            {auth.user && ["citizen", "ngo"].includes(auth.user.role) && (
+              <NavLink to="/dashboard" onClick={closeMenu}>My dashboard</NavLink>
+            )}
+
+            {auth.user && ["university", "industry", "ngo"].includes(auth.user.role) && (
+              <NavLink to="/organization" onClick={closeMenu}>My Challenges</NavLink>
+            )}
+              
+            {auth.user && auth.user.role === "admin" && (
+              <>
+                <NavLink to="/admin" onClick={closeMenu}>Admin Dashboard</NavLink>
+                <NavLink to="/vr-map" onClick={closeMenu} className="vr-link">
+                  <Sparkles size={16} /> VR Command Center
+                </NavLink>
+              </>
+            )}
+            
+            <div style={{ marginTop: '10px' }}>
+              <DarkModeToggle />
+            </div>
+          </div>
         )}
       </div>
 
-      <Link className="brand" to="/">
+      <Link className="brand" to="/" onClick={closeMenu}>
         <span className="brand-mark">
           <Leaf size={20} />
         </span>
@@ -333,7 +364,7 @@ function Nav({ auth }) {
                 {auth.user.nova_coins || 0}
               </div>
             )}
-            <button className="text-btn" onClick={auth.out} style={{ padding: 0, marginLeft: auth.user.role === "admin" ? '10px' : '0' }}>
+            <button className="text-btn" onClick={() => { auth.out(); closeMenu(); }} style={{ padding: 0, marginLeft: auth.user.role === "admin" ? '10px' : '0' }}>
               <LogOut size={20} className="mobile-icon-color" />
             </button>
           </>
@@ -343,28 +374,28 @@ function Nav({ auth }) {
       </div>
 
       <nav>
-        <NavLink to="/issues" style={{ order: 1 }}>
+        <NavLink to="/issues" style={{ order: 1 }} onClick={closeMenu}>
           <HomeIcon className="nav-icon" />
           <span className="nav-text">Explore</span>
         </NavLink>
         
-        <NavLink to="/citizen-map" style={{ order: 2 }}>
+        <NavLink to="/citizen-map" style={{ order: 2 }} onClick={closeMenu}>
           <MapIcon className="nav-icon" />
           <span className="nav-text">Live Map</span>
         </NavLink>
 
-        <NavLink to={getAddRoute()} className="mobile-only mobile-add-btn" style={{ order: 3 }}>
+        <NavLink to={getAddRoute()} className="mobile-only mobile-add-btn" style={{ order: 3 }} onClick={closeMenu}>
           <PlusSquare className="nav-icon" />
         </NavLink>
 
         {auth.user?.role !== "admin" && (
-          <NavLink to="/rewards" style={{ order: 4 }}>
+          <NavLink to="/rewards" style={{ order: 4 }} onClick={closeMenu}>
             <Gift className="nav-icon" />
             <span className="nav-text">Rewards</span>
           </NavLink>
         )}
 
-        <NavLink to={auth.user ? "/settings" : "/login"} className="mobile-only profile-nav" style={{ order: 5 }}>
+        <NavLink to={auth.user ? "/settings" : "/login"} className="mobile-only profile-nav" style={{ order: 5 }} onClick={closeMenu}>
           {auth.user ? (
             <span className="user-dot nav-icon" style={{ width: 26, height: 26, fontSize: '10px', margin: 0, padding: 0 }}>
               {auth.user.name.split(" ").map((x) => x[0]).slice(0, 2)}
@@ -391,6 +422,8 @@ function Nav({ auth }) {
               </NavLink>
             </>
           )}
+          
+          <DarkModeToggle />
           
           {auth.user ? (
             <div className="nav-user" style={{ display: "flex", alignItems: "center", gap: "15px" }}>
