@@ -534,12 +534,19 @@ Rules:
 
 /*
 |--------------------------------------------------------------------------
-| ASSIGN ORGANIZATION
+| ASSIGN / CLAIM ORGANIZATION
 |--------------------------------------------------------------------------
 | Uses the existing issue_matches table.
+| Now allows organizations to claim challenges themselves.
 */
-router.post("/:challengeId/assign", requireAdmin, async (req, res) => {
+router.post("/:challengeId/assign", async (req, res) => {
   try {
+    // NEW: Allow organizations to claim, plus admins to assign
+    const allowedRoles = ["admin", "university", "industry", "ngo"];
+    if (!req.user || !allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ message: "This action is not available for your role." });
+    }
+
     const { challengeId } = req.params;
     const { organization_user_id } = req.body;
 
@@ -584,13 +591,13 @@ router.post("/:challengeId/assign", requireAdmin, async (req, res) => {
     if (
       orgError ||
       !organization ||
-      !["university", "industry"].includes(
+      !["university", "industry", "ngo"].includes(
         organization.role
       )
     ) {
       return res.status(400).json({
         message:
-          "Only universities and industries can be assigned.",
+          "Only universities, NGOs, and industries can be assigned.",
       });
     }
 
@@ -612,9 +619,6 @@ router.post("/:challengeId/assign", requireAdmin, async (req, res) => {
     // ------------------------------------------------------------
     // IMPORTANT:
     // Do NOT overwrite an existing active assignment.
-    //
-    // Assigned → Accepted → In Progress → Completed
-    // are all active assignment states.
     // ------------------------------------------------------------
     if (
       existingMatch &&
@@ -663,9 +667,10 @@ router.post("/:challengeId/assign", requireAdmin, async (req, res) => {
           issue_id: challenge.issue_id,
           organization_user_id,
           matched_expertise: [],
-          match_reason:
-            "Manually assigned by administrator.",
-          match_score: 0,
+          match_reason: req.user.role === "admin" 
+            ? "Manually assigned by administrator." 
+            : "Claimed directly from Open Challenge Board.",
+          match_score: 100, // Bypass match score for manual claims
           status: "Assigned",
         })
         .select("*")
